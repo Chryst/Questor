@@ -1,266 +1,372 @@
-﻿namespace Questor.Storylines
+
+namespace Questor.Storylines
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using DirectEve;
-    using global::Questor.Modules;
+    using global::Questor.Modules.Actions;
+    using global::Questor.Modules.Activities;
+    using global::Questor.Modules.Caching;
+    using global::Questor.Modules.Combat;
+    using global::Questor.Modules.Logging;
+    using global::Questor.Modules.Lookup;
+    using global::Questor.Modules.States;
 
     public class Storyline
     {
-        public StorylineState State { get; set; }
-
-        public long AgentId { get; private set; }
-        
         private IStoryline _storyline;
-        private Dictionary<string, IStoryline> _storylines;
-        private List<long> _agentBlacklist;
+        private readonly Dictionary<string, IStoryline> _storylines;
 
-        private Combat _combat;
-        private Traveler _traveler;
-        private AgentInteraction _agentInteraction;
+        private readonly Combat _combat;
+        private readonly AgentInteraction _agentInteraction;
 
-        private DateTime _nextAction;
+        private DateTime _nextAction = DateTime.Now;
+        private DateTime _nextStoryLineAttempt = DateTime.Now;
+        private int _highSecCounter;
+        private bool _highSecChecked;
+        private bool _setDestinationStation;
 
         public Storyline()
         {
             _combat = new Combat();
-            _traveler = new Traveler();
             _agentInteraction = new AgentInteraction();
 
-            _agentBlacklist = new List<long>();
+            Cache.Instance.AgentBlacklist = new List<long>();
 
-            _storylines = new Dictionary<string, IStoryline>();
-            //_storylines.Add("__", new GenericCombatStoryline());
-            _storylines.Add("Materials For War Preparation", new MaterialsForWarPreparation());
-            _storylines.Add("Shipyard Theft", new GenericCombatStoryline());
-            _storylines.Add("Evolution", new GenericCombatStoryline());
-            _storylines.Add("Record Cleaning", new GenericCombatStoryline());
-            _storylines.Add("Covering Your Tracks", new GenericCombatStoryline());
-            _storylines.Add("Crowd Control", new GenericCombatStoryline());
-            _storylines.Add("A Force to Be Reckoned With", new GenericCombatStoryline());
-            _storylines.Add("Kidnappers Strike - Ambush In The Dark (1 of 10)", new GenericCombatStoryline());
-            _storylines.Add("Kidnappers Strike - The Kidnapping (3 of 10)", new GenericCombatStoryline());
-            _storylines.Add("Kidnappers Strike - Incriminating Evidence (5 of 10)", new GenericCombatStoryline());
-            _storylines.Add("Kidnappers Strike - The Secret Meeting (7 of 10)", new GenericCombatStoryline());
-            _storylines.Add("Kidnappers Strike - Defend the Civilian Convoy (8 of 10)", new GenericCombatStoryline());
-            _storylines.Add("Kidnappers Strike - Retrieve the Prisoners (9 of 10)", new GenericCombatStoryline());
-            _storylines.Add("Kidnappers Strike - The Final Battle (10 of 10)", new GenericCombatStoryline());
-            _storylines.Add("Whispers in the Dark - First Contact (1 of 4)", new GenericCombatStoryline());
-            _storylines.Add("Whispers in the Dark - Lay and Pray (2 of 4)", new GenericCombatStoryline());
-            _storylines.Add("Whispers in the Dark - The Outpost (4 of 4)", new GenericCombatStoryline());
-            _storylines.Add("Transaction Data Delivery", new TransactionDataDelivery());
-            _storylines.Add("Innocents in the Crossfire", new GenericCombatStoryline());
-            _storylines.Add("Patient Zero", new GenericCombatStoryline());
-            _storylines.Add("Soothe the Salvage Beast", new GenericCombatStoryline());
-            _storylines.Add("Forgotten Outpost", new GenericCombatStoryline());
-            _storylines.Add("Stem the Flow", new GenericCombatStoryline());
-            _storylines.Add("Quota Season", new GenericCombatStoryline()); //why cant we pickup the Custom Circuitry? problem in salvage.cs somewhere: "salvage: Container" name: Number "contained no valuable loot"
-            //_storylines.Add("Matriarch", new GenericCombatStoryline());
-            //_storylines.Add("Diplomatic Incident", new GenericCombatStoryline());
-            _storylines.Add("Nine Tenths of the Wormhole", new GenericCombatStoryline());
+            _storylines = new Dictionary<string, IStoryline>
+                            {
+                               // Examples
+                               //{"StorylineCombatNameHere", new GenericCombatStoryline()},
+                               //{"StorylineCourierNameHere", new GenericCourier()},
+
+                               /* COURIER/DELIVERY - ALL FACTIONS */
+                               {"Materials For War Preparation", new MaterialsForWarPreparation()},
+                               {"Transaction Data Delivery", new TransactionDataDelivery()},
+                               //{"A Special Delivery", new GenericCourier()}, // Needs 40k m3 cargo capacity (i.e. Iteron Mark V, T2 CHO rigs)
+                               /* COURIER/DELIVERY - AMARR */
+                               {"Opiate of the Masses", new GenericCourier()},
+                               {"Send the Marines", new GenericCourier()},
+                               {"The Governors Ball", new GenericCourier()},
+                               {"The State of the Empire", new GenericCourier()},
+                               {"Unmasking the Traitor", new GenericCourier()},
+                               /* COURIER/DELIVERY - CALDARI */
+                               {"A Desperate Rescue", new GenericCourier()},
+                               {"Black Ops Crisis", new GenericCourier()},
+                               {"Fire and Ice", new GenericCourier()},
+                               {"Hunting Black Dog", new GenericCourier()},
+                               {"Operation Doorstop", new GenericCourier()},
+                               /* COURIER/DELIVERY - GALLENTE */
+                               {"A Fine Wine", new GenericCourier()},
+                               {"On the Run", new GenericCourier()},
+                               {"A Fathers Love", new GenericCourier()},
+                               {"A Greener World", new GenericCourier()},
+                               {"Eradication", new GenericCourier()},
+                               {"Evacuation", new GenericCourier()},
+                               {"The Natural Way", new GenericCourier()},
+                               /* COURIER/DELIVERY - MINMATAR */
+                               {"A Cargo With Attitude", new GenericCourier()},
+                               {"A Load of Scrap", new GenericCourier()},
+                               {"Brand New Harvesters", new GenericCourier()},
+                               {"Heart of the Rogue Drone", new GenericCourier()},
+                               {"Their Secret Defense", new GenericCourier()},
+                               /* COURIER/DELIVERY - MORE THAN ONE RACE */
+                               
+                               /* COMBAT - ALL FACTIONS */
+                               {"Covering Your Tracks", new GenericCombatStoryline()},
+                               {"Evolution", new GenericCombatStoryline()},
+                               {"Patient Zero", new GenericCombatStoryline()},
+                               {"Record Cleaning", new GenericCombatStoryline()},
+                               {"Shipyard Theft", new GenericCombatStoryline()},
+                               {"Soothe the Salvage Beast", new GenericCombatStoryline()},
+                               /* COMBAT - AMARR */
+                               {"Blood Farm", new GenericCombatStoryline()},
+                               {"Dissidents", new GenericCombatStoryline()},
+                               {"Extract the Renegade", new GenericCombatStoryline()},
+                               {"Gate to Nowhere", new GenericCombatStoryline()},
+                               {"Racetrack Ruckus", new GenericCombatStoryline()},
+                               {"The Mouthy Merc", new GenericCombatStoryline()},
+                               /* COMBAT - CALDARI */
+                               {"Crowd Control", new GenericCombatStoryline()},
+                               {"Forgotten Outpost", new GenericCombatStoryline()},
+                               {"Illegal Mining", new GenericCombatStoryline()},
+                               {"Innocents in the Crossfire", new GenericCombatStoryline()},
+                               {"Jealous Rivals", new GenericCombatStoryline()},
+                               {"Stem the Flow", new GenericCombatStoryline()},
+                               /* COMBAT - GALLENTE */
+                               {"A Force to Be Reckoned With", new GenericCombatStoryline()},
+                               {"Kidnappers Strike - Ambush In The Dark (1 of 10)", new GenericCombatStoryline()},
+                               {"Kidnappers Strike - The Kidnapping (3 of 10)", new GenericCombatStoryline()},
+                               {"Kidnappers Strike - Incriminating Evidence (5 of 10)", new GenericCombatStoryline()},
+                               {"Kidnappers Strike - The Secret Meeting (7 of 10)", new GenericCombatStoryline()},
+                               {"Kidnappers Strike - Defend the Civilian Convoy (8 of 10)", new GenericCombatStoryline()},
+                               {"Kidnappers Strike - Retrieve the Prisoners (9 of 10)", new GenericCombatStoryline()},
+                               {"Kidnappers Strike - The Final Battle (10 of 10)", new GenericCombatStoryline()},
+                               {"Whispers in the Dark - First Contact (1 of 4)", new GenericCombatStoryline()},
+                               {"Whispers in the Dark - Lay and Pray (2 of 4)", new GenericCombatStoryline()},
+                               {"Whispers in the Dark - The Outpost (4 of 4)", new GenericCombatStoryline()},
+                               /* COMBAT - MINMATAR */
+                               {"Amarrian Excavators", new GenericCombatStoryline()},
+                               {"Diplomatic Incident", new GenericCombatStoryline()},
+                               {"Matriarch", new GenericCombatStoryline()},
+                               {"Nine Tenths of the Wormhole", new GenericCombatStoryline()},
+                               {"Postmodern Primitives", new GenericCombatStoryline()},
+                               {"Quota Season", new GenericCombatStoryline()},
+                               {"The Blood of Angry Men", new GenericCombatStoryline()},
+                               /* COMBAT - MORE THAN ONE RACE */                                                            
+                            };
         }
-            //these work but are against other factions that I generally like to avoid
-            //_storylines.Add("The Blood of Angry Men", new GenericCombatStoryline());  //amarr faction
-            //_storylines.Add("Amarrian Excavators", new GenericCombatStoryline()); 	//amarr faction
-
 
         public void Reset()
         {
-            State = StorylineState.Idle;
-            AgentId = 0;
+            //Logging.Log("Storyline", "Storyline.Reset", Logging.White);
+            _States.CurrentStorylineState = StorylineState.Idle;
+            Cache.Instance.CurrentStorylineAgentId = 0;
             _storyline = null;
-            _agentInteraction.State = AgentInteractionState.Idle;
-            _traveler.State = TravelerState.Idle;
-            _traveler.Destination = null;
+            _States.CurrentAgentInteractionState = AgentInteractionState.Idle;
+            _States.CurrentTravelerState = TravelerState.Idle;
+            Traveler.Destination = null;
         }
 
-        private DirectAgentMission Mission
+        private DirectAgentMission StorylineMission
         {
             get
             {
-                IEnumerable<DirectAgentMission> missions = Cache.Instance.DirectEve.AgentMissions;
-                if (AgentId != 0)
-                    return missions.FirstOrDefault(m => m.AgentId == AgentId);
+                IEnumerable<DirectAgentMission> missionsInJournal = Cache.Instance.DirectEve.AgentMissions.ToList();
+                if (Cache.Instance.CurrentStorylineAgentId != 0)
+                    return missionsInJournal.FirstOrDefault(m => m.AgentId == Cache.Instance.CurrentStorylineAgentId);
 
-                missions = missions.Where(m => !_agentBlacklist.Contains(m.AgentId));
-                missions = missions.Where(m => m.Important);
-                missions = missions.Where(m => _storylines.ContainsKey(Cache.Instance.FilterPath(m.Name)));
-                missions = missions.Where(m => !Settings.Instance.Blacklist.Any(b => b.ToLower() == Cache.Instance.FilterPath(m.Name).ToLower()));
-                return missions.FirstOrDefault();
+                missionsInJournal = missionsInJournal.Where(m => !Cache.Instance.AgentBlacklist.Contains(m.AgentId)).ToList();
+                missionsInJournal = missionsInJournal.Where(m => m.Important).ToList();
+                Logging.Log("Storyline", "Currently have  [" + missionsInJournal.Count() + "] available storyline missions", Logging.Yellow);
+                missionsInJournal = missionsInJournal.Where(m => _storylines.ContainsKey(Cache.Instance.FilterPath(m.Name)));
+                Logging.Log("Storyline", "Currently have  [" + missionsInJournal.Count() + "] storyline missions questor knows how to do", Logging.Yellow);
+                missionsInJournal = missionsInJournal.Where(m => Settings.Instance.MissionBlacklist.All(b => b.ToLower() != Cache.Instance.FilterPath(m.Name).ToLower())).ToList();
+                Logging.Log("Storyline", "Currently have  [" + missionsInJournal.Count() + "] storyline missions questor knows how to do and are not blacklisted", Logging.Yellow);
+                //missions = missions.Where(m => !Settings.Instance.MissionGreylist.Any(b => b.ToLower() == Cache.Instance.FilterPath(m.Name).ToLower()));
+                return missionsInJournal.FirstOrDefault();
             }
         }
 
         private void IdleState()
         {
-            var mission = Mission;
-            if (mission == null)
+            DirectAgentMission currentStorylineMission = StorylineMission;
+            if (currentStorylineMission == null)
             {
-                State = StorylineState.Done;
+                _nextStoryLineAttempt = DateTime.Now.AddMinutes(15);
+                _States.CurrentStorylineState = StorylineState.Done;
                 Cache.Instance.MissionName = String.Empty;
                 return;
             }
 
-            AgentId = mission.AgentId;
-            var agent = Cache.Instance.DirectEve.GetAgentById(AgentId);
-            if (agent == null)
+            Cache.Instance.CurrentStorylineAgentId = currentStorylineMission.AgentId;
+            DirectAgent storylineagent = Cache.Instance.DirectEve.GetAgentById(Cache.Instance.CurrentStorylineAgentId);
+            if (storylineagent == null)
             {
-                Logging.Log("Storyline: Unknown agent [" + AgentId + "]");
+                Logging.Log("Storyline", "Unknown agent [" + Cache.Instance.CurrentStorylineAgentId + "]", Logging.Yellow);
 
-                State = StorylineState.Done;
+                _States.CurrentStorylineState = StorylineState.Done;
                 return;
             }
 
-            Logging.Log("Storyline: Going to do [" + mission.Name + "] for agent [" + agent.Name + "]");
-            Cache.Instance.MissionName = mission.Name;
+            Logging.Log("Storyline", "Going to do [" + currentStorylineMission.Name + "] for agent [" + storylineagent.Name + "] AgentID[" + Cache.Instance.CurrentStorylineAgentId + "]", Logging.Yellow);
+            Cache.Instance.MissionName = currentStorylineMission.Name;
 
-            State = StorylineState.Arm;
-            _storyline = _storylines[Cache.Instance.FilterPath(mission.Name)];
+            _highSecChecked = false;
+            _States.CurrentStorylineState = StorylineState.Arm;
+            _storyline = _storylines[Cache.Instance.FilterPath(currentStorylineMission.Name)];
         }
 
         private void GotoAgent(StorylineState nextState)
         {
-            var agent = Cache.Instance.DirectEve.GetAgentById(AgentId);
-            if (agent == null)
+            if (_nextAction > DateTime.Now)
+                return;
+
+            DirectAgent storylineagent = Cache.Instance.DirectEve.GetAgentById(Cache.Instance.CurrentStorylineAgentId);
+            if (storylineagent == null)
             {
-                State = StorylineState.Done;
+                _States.CurrentStorylineState = StorylineState.Done;
                 return;
             }
 
-            var baseDestination = _traveler.Destination as StationDestination;
-            if (baseDestination == null || baseDestination.StationId != agent.StationId)
-                _traveler.Destination = new StationDestination(agent.SolarSystemId, agent.StationId, Cache.Instance.DirectEve.GetLocationName(agent.StationId));
+            var baseDestination = Traveler.Destination as StationDestination;
+            if (baseDestination == null || baseDestination.StationId != storylineagent.StationId)
+            {
+                Traveler.Destination = new StationDestination(storylineagent.SolarSystemId, storylineagent.StationId, Cache.Instance.DirectEve.GetLocationName(storylineagent.StationId));
+                return;
+            }
+
+            if (!_highSecChecked && storylineagent.SolarSystemId != Cache.Instance.DirectEve.Session.SolarSystemId)
+            {
+                // if we haven't already done so, set Eve's autopilot
+                if (!_setDestinationStation)
+                {
+                    if (!Traveler.SetStationDestination(storylineagent.StationId))
+                    {
+                        Logging.Log("Storyline", "GotoAgent: Unable to find route to storyline agent. Skipping.", Logging.Yellow);
+                        _States.CurrentStorylineState = StorylineState.Done;
+                        return;
+                    }
+                    _setDestinationStation = true;
+                    _nextAction = DateTime.Now.AddSeconds(Cache.Instance.RandomNumber(2, 4));
+                    return;
+                }
+
+                // Make sure we have got a clear path to the agent
+                if (!Settings.Instance.LowSecMissionsInShuttles && !Cache.Instance.CheckifRouteIsAllHighSec())
+                {
+                    if (_highSecCounter < 5)
+                    {
+                        _highSecCounter++;
+                        return;
+                    }
+                    Logging.Log("Storyline", "GotoAgent: Unable to determine whether route is all highsec or not. Skipping.", Logging.Yellow);
+                    _States.CurrentStorylineState = StorylineState.Done;
+                    _highSecCounter = 0;
+                    return;
+                }
+
+                if (!Cache.Instance.RouteIsAllHighSecBool)
+                {
+                    Logging.Log("Storyline", "GotoAgent: Route to agent is through low-sec systems. Skipping.", Logging.Yellow);
+                    _States.CurrentStorylineState = StorylineState.Done;
+                    return;
+                }
+                _highSecChecked = true;
+            }
 
             if (Cache.Instance.PriorityTargets.Any(pt => pt != null && pt.IsValid))
             {
-                Logging.Log("Storyline: GotoAgent: Priority targets found, engaging!");
+                Logging.Log("Storyline", "GotoAgent: Priority targets found, engaging!", Logging.Yellow);
                 _combat.ProcessState();
             }
 
-            _traveler.ProcessState();
-            if (_traveler.State == TravelerState.AtDestination)
+            Traveler.ProcessState();
+            if (_States.CurrentTravelerState == TravelerState.AtDestination)
             {
-                State = nextState;
-                _traveler.Destination = null;
+                _States.CurrentStorylineState = nextState;
+                Traveler.Destination = null;
+                _setDestinationStation = false;
             }
 
             if (Settings.Instance.DebugStates)
-                Logging.Log("Traveler.State = " + _traveler.State);
+                Logging.Log("Traveler.State is", _States.CurrentTravelerState.ToString(), Logging.White);
         }
 
         private void BringSpoilsOfWar()
         {
-            var directEve = Cache.Instance.DirectEve;
             if (_nextAction > DateTime.Now)
                 return;
 
             // Open the item hangar (should still be open)
-            var hangar = directEve.GetItemHangar();
-            if (hangar.Window == null)
-            {
-                _nextAction = DateTime.Now.AddSeconds(10);
-
-                Logging.Log("MaterialsForWarPreparation: Opening hangar floor");
-
-                directEve.ExecuteCommand(DirectCmd.OpenHangarFloor);
-                return;
-            }
-
-            // Wait for it to become ready
-            if (!hangar.IsReady)
-                return;
+            if (!Cache.Instance.OpenItemsHangar("Storyline")) return;
 
             // Do we have any implants?
-            if (!hangar.Items.Any(i => i.GroupId >= 738 && i.GroupId <= 750))
+            if (!Cache.Instance.ItemHangar.Items.Any(i => i.GroupId >= 738 && i.GroupId <= 750))
             {
-                State = StorylineState.Done;
+                _States.CurrentStorylineState = StorylineState.Done;
                 return;
             }
 
             // Yes, open the ships cargo
-            var cargo = directEve.GetShipsCargo();
-            if (cargo.Window == null)
-            {
-                _nextAction = DateTime.Now.AddSeconds(10);
+            if (!Cache.Instance.OpenCargoHold("Storyline")) return;
 
-                Logging.Log("MaterialsForWarPreparation: Opening cargo");
-
-                directEve.ExecuteCommand(DirectCmd.OpenCargoHoldOfActiveShip);
-                return;
-            }
-
-            if (!cargo.IsReady)
-                return;
-
-            // If we aren't moving items
+            // If we are not moving items
             if (Cache.Instance.DirectEve.GetLockedItems().Count == 0)
             {
                 // Move all the implants to the cargo bay
-                foreach (var item in hangar.Items.Where(i => i.GroupId >= 738 && i.GroupId <= 750))
+                foreach (DirectItem item in Cache.Instance.ItemHangar.Items.Where(i => i.GroupId >= 738 && i.GroupId <= 750))
                 {
-                    if (cargo.Capacity - cargo.UsedCapacity - (item.Volume * item.Quantity) < 0)
+                    if (Cache.Instance.CargoHold.Capacity - Cache.Instance.CargoHold.UsedCapacity - (item.Volume * item.Quantity) < 0)
                     {
-                        Logging.Log("Storyline: We are full, not moving anything else");
-                        State = StorylineState.Done;
+                        Logging.Log("Storyline", "We are full, not moving anything else", Logging.Yellow);
+                        _States.CurrentStorylineState = StorylineState.Done;
                         return;
                     }
 
-                    Logging.Log("Storyline: Moving [" + item.TypeName + "][" + item.ItemId + "] to cargo");
-                    cargo.Add(item, item.Quantity);
+                    Logging.Log("Storyline", "Moving [" + item.TypeName + "][" + item.ItemId + "] to cargo", Logging.Yellow);
+                    Cache.Instance.CargoHold.Add(item, item.Quantity);
                 }
-
                 _nextAction = DateTime.Now.AddSeconds(10);
             }
-
             return;
         }
 
         public void ProcessState()
         {
-            switch (State)
+            switch (_States.CurrentStorylineState)
             {
                 case StorylineState.Idle:
                     IdleState();
                     break;
 
                 case StorylineState.Arm:
-                    State = _storyline.Arm(this);
+                    //Logging.Log("Storyline: Arm");
+                    _States.CurrentStorylineState = _storyline.Arm(this);
                     break;
 
                 case StorylineState.GotoAgent:
+                    //Logging.Log("Storyline: GotoAgent");
                     GotoAgent(StorylineState.PreAcceptMission);
                     break;
 
                 case StorylineState.PreAcceptMission:
-                    State = _storyline.PreAcceptMission(this);
+                    //Logging.Log("Storyline: PreAcceptMission-!!");
+                    _States.CurrentAgentInteractionState = AgentInteractionState.Idle;
+                    _States.CurrentStorylineState = _storyline.PreAcceptMission(this);
+                    break;
+
+                case StorylineState.DeclineMission:
+                    if (_States.CurrentAgentInteractionState == AgentInteractionState.Idle)
+                    {
+                        Logging.Log("Storyline.AgentInteraction", "Start conversation [Decline Mission]", Logging.Yellow);
+
+                        _States.CurrentAgentInteractionState = AgentInteractionState.StartConversation;
+                        AgentInteraction.Purpose = AgentInteractionPurpose.DeclineMission;
+                        _agentInteraction.AgentId = Cache.Instance.CurrentStorylineAgentId;
+
+                    }
+
+                    _agentInteraction.ProcessState();
+
+                    if (Settings.Instance.DebugStates)
+                        Logging.Log("AgentInteraction.State is ", _States.CurrentAgentInteractionState.ToString(), Logging.White);
+
+                    if (_States.CurrentAgentInteractionState == AgentInteractionState.Done)
+                    {
+                        _States.CurrentAgentInteractionState = AgentInteractionState.Idle;
+                        // If there is no mission anymore then we're done (we declined it)
+                        
+                    }
                     break;
 
                 case StorylineState.AcceptMission:
-                    if (_agentInteraction.State == AgentInteractionState.Idle)
+                    //Logging.Log("Storyline: AcceptMission!!-");
+                    if (_States.CurrentAgentInteractionState == AgentInteractionState.Idle)
                     {
-                        Logging.Log("AgentInteraction: Start conversation [Start Mission]");
+                        Logging.Log("Storyline.AgentInteraction", "Start conversation [Start Mission]", Logging.Yellow);
 
-                        _agentInteraction.State = AgentInteractionState.StartConversation;
-                        _agentInteraction.Purpose = AgentInteractionPurpose.StartMission;
-                        _agentInteraction.AgentId = AgentId;
+                        _States.CurrentAgentInteractionState = AgentInteractionState.StartConversation;
+                        AgentInteraction.Purpose = AgentInteractionPurpose.StartMission;
+                        _agentInteraction.AgentId = Cache.Instance.CurrentStorylineAgentId;
                         _agentInteraction.ForceAccept = true;
                     }
 
                     _agentInteraction.ProcessState();
 
                     if (Settings.Instance.DebugStates)
-                        Logging.Log("AgentInteraction.State = " + _agentInteraction.State);
+                        Logging.Log("AgentInteraction.State is ", _States.CurrentAgentInteractionState.ToString(), Logging.White);
 
-                    if (_agentInteraction.State == AgentInteractionState.Done)
+                    if (_States.CurrentAgentInteractionState == AgentInteractionState.Done)
                     {
-                        _agentInteraction.State = AgentInteractionState.Idle;
-                        // If theres no mission anymore then we're done (we declined it)
-                        State = Mission == null ? StorylineState.Done : StorylineState.ExecuteMission;
+                        _States.CurrentAgentInteractionState = AgentInteractionState.Idle;
+                        // If there is no mission anymore then we're done (we declined it)
+                        _States.CurrentStorylineState = StorylineMission == null ? StorylineState.Done : StorylineState.ExecuteMission;
                     }
                     break;
-                
+
                 case StorylineState.ExecuteMission:
-                    State = _storyline.ExecuteMission(this);
+                    _States.CurrentStorylineState = _storyline.ExecuteMission(this);
                     break;
 
                 case StorylineState.ReturnToAgent:
@@ -268,23 +374,23 @@
                     break;
 
                 case StorylineState.CompleteMission:
-                    if (_agentInteraction.State == AgentInteractionState.Idle)
+                    if (_States.CurrentAgentInteractionState == AgentInteractionState.Idle)
                     {
-                        Logging.Log("AgentInteraction: Start Conversation [Complete Mission]");
+                        Logging.Log("AgentInteraction", "Start Conversation [Complete Mission]", Logging.Yellow);
 
-                        _agentInteraction.State = AgentInteractionState.StartConversation;
-                        _agentInteraction.Purpose = AgentInteractionPurpose.CompleteMission;
+                        _States.CurrentAgentInteractionState = AgentInteractionState.StartConversation;
+                        AgentInteraction.Purpose = AgentInteractionPurpose.CompleteMission;
                     }
 
                     _agentInteraction.ProcessState();
 
                     if (Settings.Instance.DebugStates)
-                        Logging.Log("AgentInteraction.State = " + _agentInteraction.State);
+                        Logging.Log("AgentInteraction.State is", _States.CurrentAgentInteractionState.ToString(), Logging.White);
 
-                    if (_agentInteraction.State == AgentInteractionState.Done)
+                    if (_States.CurrentAgentInteractionState == AgentInteractionState.Done)
                     {
-                        _agentInteraction.State = AgentInteractionState.Idle;
-                        State = StorylineState.BringSpoilsOfWar;
+                        _States.CurrentAgentInteractionState = AgentInteractionState.Idle;
+                        _States.CurrentStorylineState = StorylineState.BringSpoilsOfWar;
                     }
                     break;
 
@@ -293,11 +399,17 @@
                     break;
 
                 case StorylineState.BlacklistAgent:
-                    _agentBlacklist.Add(AgentId);
-                    State = StorylineState.Done;
+                    Cache.Instance.AgentBlacklist.Add(Cache.Instance.CurrentStorylineAgentId);
+                    Logging.Log("Storyline", "BlacklistAgent: The agent that provided us with this storyline mission has been added to the session blacklist", Logging.Orange);
+                    Reset();
+                    _States.CurrentCombatMissionBehaviorState = CombatMissionsBehaviorState.GotoBase;
                     break;
 
                 case StorylineState.Done:
+                    if (DateTime.Now > _nextStoryLineAttempt)
+                    {
+                        _States.CurrentStorylineState = StorylineState.Idle;
+                    }
                     break;
             }
         }
@@ -305,7 +417,7 @@
         public bool HasStoryline()
         {
             // Do we have a registered storyline?
-            return Mission != null;
+            return StorylineMission != null;
         }
 
         public IStoryline StorylineHandler
