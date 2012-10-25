@@ -245,7 +245,8 @@ namespace Questor.Modules.Activities
                 return;
             }
 
-            Logging.Log("Traveler.TravelHome", "HomeBookmarkName bookmark not found! Looking for bookmark starting with [" + Settings.Instance.HomeBookmarkName + "] found none.", Logging.Orange);
+            Logging.Log("Traveler.TravelHome", "HomeBookmarkName bookmark not found! using AgentsStation info instead: We were Looking for bookmark starting with [" + Settings.Instance.HomeBookmarkName + "] found none.", Logging.Orange);
+            TravelToAgentsStation(module);
             return;
         }
 
@@ -278,6 +279,7 @@ namespace Questor.Modules.Activities
 
             Cache.Instance.OpenWrecks = false;
 
+            /*
             if (Settings.Instance.setEveClientDestinationWhenTraveling) //sets destination to Questors destination, so they match... (defaults to false, needs testing again and probably needs to be exposed as a setting)
             {
                 if (DateTime.Now > _nextGetDestinationPath || EVENavdestination == null)
@@ -310,6 +312,7 @@ namespace Questor.Modules.Activities
                         EVENavdestination[0] = Cache.Instance.DirectEve.Session.SolarSystemId ?? -1;
                 }
             }
+            */
 
             if (Settings.Instance.DebugGotobase) Logging.Log(module, "TravelToAgentsStation:      Cache.Instance.AgentStationId [" + Cache.Instance.AgentStationID + "]", Logging.White);
             if (Settings.Instance.DebugGotobase) Logging.Log(module, "TravelToAgentsStation:  Cache.Instance.AgentSolarSystemId [" + Cache.Instance.AgentSolarSystemID + "]", Logging.White);
@@ -399,6 +402,7 @@ namespace Questor.Modules.Activities
 
             Cache.Instance.OpenWrecks = false;
 
+            /*
             if (Settings.Instance.setEveClientDestinationWhenTraveling) //sets destination to Questors destination, so they match... (defaults to false, needs testing again and probably needs to be exposed as a setting)
             {
                 if (DateTime.Now > _nextGetDestinationPath || EVENavdestination == null)
@@ -431,6 +435,7 @@ namespace Questor.Modules.Activities
                         EVENavdestination[0] = Cache.Instance.DirectEve.Session.SolarSystemId ?? -1;
                 }
             }
+            */
 
             if (Settings.Instance.DebugGotobase) Logging.Log(module, "TravelToAgentsStation:      Cache.Instance.AgentStationId [" + Cache.Instance.AgentStationID + "]", Logging.White);
             if (Settings.Instance.DebugGotobase) Logging.Log(module, "TravelToAgentsStation:  Cache.Instance.AgentSolarSystemId [" + Cache.Instance.AgentSolarSystemID + "]", Logging.White);

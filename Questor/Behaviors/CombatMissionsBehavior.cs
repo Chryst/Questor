@@ -737,7 +737,7 @@ namespace Questor.Behaviors
                         {
                             try
                             {
-                                Cache.Instance.Mission = Cache.Instance.GetAgentMission(AgentID, false);    
+                                Cache.Instance.Mission = Cache.Instance.GetAgentMission(AgentID, true);    
                             }
                             catch(Exception exception)
                             {
@@ -868,7 +868,7 @@ namespace Questor.Behaviors
                     {
                         Cache.Instance.LootAlreadyUnloaded = true;
                         _States.CurrentUnloadLootState = UnloadLootState.Idle;
-                        Cache.Instance.Mission = Cache.Instance.GetAgentMission(AgentID, false);
+                        Cache.Instance.Mission = Cache.Instance.GetAgentMission(AgentID, true);
                         //if (Cache.Instance.Mission == null)
                         //{
                         //    Logging.Log("CombatMissionsBehavior", "Cache.Instance.Mission == null - retry on next iteration", Logging.Teal);

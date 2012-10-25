@@ -1,4 +1,4 @@
-// ------------------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------
 // <copyright from='2010' to='2015' company='THEHACKERWITHIN.COM'>
 // Copyright (c) TheHackerWithin.COM. All Rights Reserved.
 //
@@ -419,7 +419,9 @@ namespace Questor.Modules.Lookup
                 Settings.Instance.CharacterName = "AtLoginScreenNoCharactersLoggedInYet";
             }
 
-            if (Settings.Instance.CharacterName == string.Empty)
+            Settings.Instance.SettingsPath = System.IO.Path.Combine(Settings.Instance.Path, Cache.Instance.FilterPath(Settings.Instance.CharacterName) + ".xml");
+            
+            if (Settings.Instance.SettingsPath == System.IO.Path.Combine(Settings.Instance.Path, ".xml"))
             {
                 if (Cache.Instance.LastInStation.AddMinutes(60) > DateTime.Now)
                 {
@@ -434,7 +436,6 @@ namespace Questor.Modules.Lookup
                 //Cache.Instance.SessionState = "Quitting";
             }
 
-            Settings.Instance.SettingsPath = System.IO.Path.Combine(Settings.Instance.Path, Cache.Instance.FilterPath(Settings.Instance.CharacterName) + ".xml");
             bool reloadSettings = true;
             if (File.Exists(Settings.Instance.SettingsPath))
                 reloadSettings = _lastModifiedDate != File.GetLastWriteTime(Settings.Instance.SettingsPath);
@@ -1229,8 +1230,8 @@ namespace Questor.Modules.Lookup
                     if (blacklist != null)
                     {
                         Logging.Log("Settings","Loading Mission Blacklist",Logging.White);
-                        foreach (XElement blacklistedmission in blacklist.Elements("mission"))
-                            MissionBlacklist.Add((string)blacklistedmission);
+                        foreach (XElement BlacklistedMission in blacklist.Elements("mission"))
+                            MissionBlacklist.Add((string)BlacklistedMission);
                         Logging.Log("Settings", "Mission Blacklist now has [" + MissionBlacklist.Count + "] entries", Logging.White);
                     }
 
@@ -1242,8 +1243,8 @@ namespace Questor.Modules.Lookup
                     if (greylist != null)
                     {
                         Logging.Log("Settings", "Loading Mission Greylist", Logging.White);
-                        foreach (XElement greylistedmission in greylist.Elements("mission"))
-                            MissionGreylist.Add((string)greylistedmission);
+                        foreach (XElement GreylistedMission in greylist.Elements("mission"))
+                            MissionGreylist.Add((string)GreylistedMission);
                         Logging.Log("Settings", "Mission Greylist now has [" + MissionBlacklist.Count + "] entries", Logging.White);
                     }
 
