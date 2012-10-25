@@ -233,7 +233,7 @@ namespace Questor.Behaviors
                     _States.CurrentStorylineState = StorylineState.Idle;
                     _States.CurrentTravelerState = TravelerState.Idle;
                     _States.CurrentUnloadLootState = UnloadLootState.Idle;
-                    _States.CurrentTravelerState = TravelerState.Idle;
+                    _States.CurrentTravelerState = TravelerState.AtDestination;
 
                     if (Cache.Instance.InSpace)
                     {
@@ -370,12 +370,13 @@ namespace Questor.Behaviors
                     NavigateOnGrid.AvoidBumpingThings(Cache.Instance.BigObjects.FirstOrDefault(), "DedicatedBookmarkSalvagerBehaviorState.GotoBase");
                     if (Settings.Instance.DebugGotobase) Logging.Log("DedicatedBookmarkSalvagerBehavior", "GotoBase: Traveler.TravelHome()", Logging.White);
                     Traveler.TravelHome("DedicatedBookmarkSalvagerBehavior");
+
                     if (_States.CurrentTravelerState == TravelerState.AtDestination) // || DateTime.Now.Subtract(Cache.Instance.EnteredCloseQuestor_DateTime).TotalMinutes > 10)
                     {
                         if (Settings.Instance.DebugGotobase) Logging.Log("DedicatedBookmarkSalvagerBehavior", "GotoBase: We are at destination", Logging.White);
                         Cache.Instance.GotoBaseNow = false; //we are there - turn off the 'forced' gotobase
                         Cache.Instance.Mission = Cache.Instance.GetAgentMission(AgentID, false);
-                        if (_States.CurrentDedicatedBookmarkSalvagerBehaviorState == DedicatedBookmarkSalvagerBehaviorState.GotoBase) _States.CurrentDedicatedBookmarkSalvagerBehaviorState = DedicatedBookmarkSalvagerBehaviorState.UnloadLoot;
+                        _States.CurrentDedicatedBookmarkSalvagerBehaviorState = DedicatedBookmarkSalvagerBehaviorState.UnloadLoot;
                         Traveler.Destination = null;
                     }
                     break;

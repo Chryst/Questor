@@ -1,4 +1,4 @@
-// ------------------------------------------------------------------------------
+﻿// ------------------------------------------------------------------------------
 //   <copyright from='2010' to='2015' company='THEHACKERWITHIN.COM'>
 //     Copyright (c) TheHackerWithin.COM. All Rights Reserved.
 //
@@ -270,7 +270,9 @@ namespace Questor.Modules.Actions
                         }
 
                         if (TryMissionShip)
+                        {
                             UseMissionShip = true;
+                        }
 
                         if (AmmoToLoad.Count == 0 && string.IsNullOrEmpty(Cache.Instance.BringMissionItem))
                         {
@@ -364,6 +366,7 @@ namespace Questor.Modules.Actions
                                     Logging.Log("Arm", "Found Default Fitting " + fitting.Name, Logging.White);
                                 }
                             }
+
                             if (!found)
                             {
                                 Logging.Log("Arm", "Error! Could not find Default Fitting.  Disabling fitting manager.", Logging.Orange);
@@ -447,7 +450,9 @@ namespace Questor.Modules.Actions
 
                     if (!Cache.Instance.ReadyAmmoHangar("Arm")) break;
 
-                    DirectItem drone = Cache.Instance.AmmoHangar.Items.OrderBy(i => i.IsSingleton).ThenBy(i => i.Quantity).FirstOrDefault(i => i.TypeId == Settings.Instance.DroneTypeId);
+                    DirectItem drone = Cache.Instance.AmmoHangar.Items.OrderBy(i => i.IsSingleton).ThenBy(i => i.Quantity).FirstOrDefault(i => i.TypeId == Settings.Instance.DroneTypeId) ??
+                                       Cache.Instance.ItemHangar.Items.OrderBy(i => i.IsSingleton).ThenBy(i => i.Quantity).FirstOrDefault(i => i.TypeId == Settings.Instance.DroneTypeId);
+
                     if (drone == null || drone.Stacksize < 1)
                     {
                         string ammoHangarName = string.IsNullOrEmpty(Settings.Instance.AmmoHangar) ? "ItemHangar" : Settings.Instance.AmmoHangar.ToString(CultureInfo.InvariantCulture);
@@ -486,10 +491,7 @@ namespace Questor.Modules.Actions
                     break;
 
                 case ArmState.MoveItems:
-                    if (!Cache.Instance.OpenCargoHold("Arm")) break;
-
-                    if (!Cache.Instance.ReadyAmmoHangar("Arm")) break;
-
+                    
                     string bringItem = Cache.Instance.BringMissionItem;
                     if (string.IsNullOrEmpty(bringItem))
                         _missionItemMoved = true;
@@ -500,9 +502,12 @@ namespace Questor.Modules.Actions
 
                     if (!_missionItemMoved)
                     {
+                        if (!Cache.Instance.OpenCargoHold("Arm")) break;
                         if (!Cache.Instance.ReadyAmmoHangar("Arm")) break;
+                        if (!Cache.Instance.OpenItemsHangar("Arm")) break;
+                        
                         DirectItem missionItem = Cache.Instance.AmmoHangar.Items.FirstOrDefault(i => (i.TypeName ?? string.Empty).ToLower() == bringItem) ??
-                                                 Cache.Instance.AmmoHangar.Items.FirstOrDefault(i => (i.TypeName ?? string.Empty).ToLower() == bringItem);
+                                                 Cache.Instance.ItemHangar.Items.FirstOrDefault(i => (i.TypeName ?? string.Empty).ToLower() == bringItem);
 
                         if (missionItem != null && !string.IsNullOrEmpty(missionItem.TypeName.ToString(CultureInfo.InvariantCulture)))
                         {
@@ -516,9 +521,12 @@ namespace Questor.Modules.Actions
 
                     if (!_optionalMissionItemMoved)
                     {
+                        if (!Cache.Instance.OpenCargoHold("Arm")) break;
                         if (!Cache.Instance.ReadyAmmoHangar("Arm")) break;
+                        if (!Cache.Instance.OpenItemsHangar("Arm")) break;
+                    
                         DirectItem optionalmissionItem = Cache.Instance.AmmoHangar.Items.FirstOrDefault(i => (i.TypeName ?? string.Empty).ToLower() == bringOptionalItem) ??
-                                                 Cache.Instance.AmmoHangar.Items.FirstOrDefault(i => (i.TypeName ?? string.Empty).ToLower() == bringOptionalItem);
+                                                         Cache.Instance.ItemHangar.Items.FirstOrDefault(i => (i.TypeName ?? string.Empty).ToLower() == bringOptionalItem);
 
                         if (optionalmissionItem != null && !string.IsNullOrEmpty(optionalmissionItem.TypeName.ToString(CultureInfo.InvariantCulture)))
                         {
@@ -539,6 +547,8 @@ namespace Questor.Modules.Actions
                     //
                     // load ammo
                     //
+                    if (!Cache.Instance.ReadyAmmoHangar("Arm")) break;
+
                     foreach (DirectItem item in Cache.Instance.AmmoHangar.Items.OrderBy(i => i.IsSingleton).ThenBy(i => i.Quantity))
                     {
                         if (item.ItemId <= 0 || item.Volume == 0.00 || item.Quantity == 0)
@@ -574,13 +584,17 @@ namespace Questor.Modules.Actions
                     else if (!ammoMoved)
                     {
                         if (AmmoToLoad.Count > 0)
+                        {
                             foreach (Ammo ammo in AmmoToLoad)
                             {
                                 Logging.Log("Arm", "Missing [" + ammo.Quantity + "] units of ammo: [ " + ammo.Description + " ] with TypeId [" + ammo.TypeId + "]", Logging.Orange);
                             }
+                        }
 
                         if (!_missionItemMoved)
+                        {
                             Logging.Log("Arm", "Missing mission item [" + bringItem + "]", Logging.Orange);
+                        }
 
                         _States.CurrentArmState = ArmState.NotEnoughAmmo;
                     }

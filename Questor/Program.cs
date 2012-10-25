@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+﻿//------------------------------------------------------------------------------
 //  <copyright from='2010' to='2015' company='THEHACKERWITHIN.COM'>
 //    Copyright (c) TheHackerWithin.COM. All Rights Reserved.
 //
@@ -50,7 +50,7 @@ namespace Questor
         private static double _minutesToStart;
         private static bool _readyToStarta;
         private static bool _readyToStart;
-        private static bool _humaninterventionrequired;
+        private static bool _humanInterventionRequired;
 
         static readonly System.Timers.Timer Timer = new System.Timers.Timer();
         private const int RandStartDelay = 30; //Random startup delay in minutes
@@ -361,7 +361,7 @@ namespace Questor
             Cache.Instance.InvalidateCache();
 
             Cache.Instance.LastFrame = DateTime.Now;
-            Cache.Instance.LastSessionIsReady = DateTime.Now; //update this reguardless before we login there is no session
+            Cache.Instance.LastSessionIsReady = DateTime.Now; //update this regardless before we login there is no session
 
             if (DateTime.Now < _nextPulse)
             {
@@ -382,16 +382,16 @@ namespace Questor
                 return;
             }
 
-            if (_humaninterventionrequired)
+            if (_humanInterventionRequired)
             {
-                //Logging.Log("Startup", "Onframe: _humaninterventionrequired is true (this will spam every second or so)", Logging.Orange);
+                //Logging.Log("Startup", "Onframe: _humanInterventionRequired is true (this will spam every second or so)", Logging.Orange);
                 return;
             }
 
             // If the session is ready, then we are done :)
             if (_directEve.Session.IsReady)
             {
-                Logging.Log("Startup", "We've successfully logged in", Logging.White);
+                Logging.Log("Startup", "We have successfully logged in", Logging.White);
                 Cache.Instance.LastSessionIsReady = DateTime.Now;
                 _done = true;
                 return;
@@ -422,21 +422,22 @@ namespace Questor
                     {
                         bool close = false;
                         bool restart = false;
-                        bool needhumanintervention = false;
-                        //bool sayyes = false;
+                        bool needHumanIntervention = false;
+                        bool sayYes = false;
+                        bool sayOk = false;
+                        bool quit = false;
                         //bool update = false;
 
                         if (!string.IsNullOrEmpty(window.Html))
                         {
                             //errors that are repeatable and unavoidable even after a restart of eve/questor
-                            needhumanintervention = window.Html.Contains("reason: Account subscription expired");
+                            needHumanIntervention = window.Html.Contains("reason: Account subscription expired");
 
                             //update |= window.Html.Contains("The update has been downloaded");
 
                             // Server going down
                             //Logging.Log("[Startup] (1) close is: " + close);
                             close |= window.Html.ToLower().Contains("please make sure your characters are out of harms way");
-                            close |= window.Html.ToLower().Contains("the socket was closed");
                             close |= window.Html.ToLower().Contains("accepting connections");
                             close |= window.Html.ToLower().Contains("could not connect");
                             close |= window.Html.ToLower().Contains("the connection to the server was closed");
@@ -463,7 +464,7 @@ namespace Questor
                             close |= window.Html.ToLower().Contains("client update is available and will now be installed");
                             close |= window.Html.ToLower().Contains("change your trial account to a paying account");
                             //
-                            // these windows require a quit of eve all together
+                            // these windows require a restart of eve all together
                             //
                             restart |= window.Html.ToLower().Contains("the connection was closed");
                             restart |= window.Html.ToLower().Contains("connection to server lost."); //INFORMATION
@@ -472,9 +473,14 @@ namespace Questor
                             restart |= window.Html.ToLower().Contains("The client's local session"); // information is corrupt");
                             restart |= window.Html.ToLower().Contains("restart the client prior to logging in");
                             //
+                            // these windows require a quit of eve all together
+                            //
+                            quit |= window.Html.ToLower().Contains("the socket was closed");
+                            
+                            //
                             // Modal Dialogs the need "yes" pressed
                             //
-                            //sayyes |= window.Html.Contains("There is a new build available");
+                            sayOk |= window.Html.Contains("The transport has not yet been connected, or authentication was not successful");
                             //Logging.Log("[Startup] (2) close is: " + close);
                             //Logging.Log("[Startup] (1) window.Html is: " + window.Html);
                             _pulsedelay = 60;
@@ -486,14 +492,37 @@ namespace Questor
                         //    LavishScript.ExecuteCommand("uplink exec Echo [${Time}] timedcommand " + secRestart + " OSExecute taskkill /IM launcher.exe");
                         //}
                         
-                        //if (sayyes)
-                        //{
-                        //    Logging.Log("Startup", "Found a window that needs 'yes' chosen...", Logging.White);
-                        //    Logging.Log("Startup", "Content of modal window (HTML): [" + (window.Html ?? string.Empty).Replace("\n", "").Replace("\r", "") + "]", Logging.White);
-                        //    window.AnswerModal("Yes");
-                        //    continue;
-                        //}
-                        
+                        if (sayYes)
+                        {
+                            Logging.Log("Startup", "Found a window that needs 'yes' chosen...", Logging.White);
+                            Logging.Log("Startup", "Content of modal window (HTML): [" + (window.Html).Replace("\n", "").Replace("\r", "") + "]", Logging.White);
+                            window.AnswerModal("Yes");
+                            continue;
+                        }
+
+                        if (sayOk)
+                        {
+                            Logging.Log("Startup", "Found a window that needs 'ok' chosen...", Logging.White);
+                            Logging.Log("Startup", "Content of modal window (HTML): [" + (window.Html).Replace("\n", "").Replace("\r", "") + "]", Logging.White);
+                            window.AnswerModal("OK");
+                            if (window.Html.Contains("The update has been downloaded. The client will now close and the update process begin"))
+                            {
+                                //
+                                // schedule the closing of launcher.exe via a timedcommand (10 min?) in the uplink...
+                                //
+                            }
+                            continue;
+                        }
+
+                        if (quit)
+                        {
+                            Logging.Log("Startup", "Restarting eve...", Logging.Red);
+                            Logging.Log("Startup", "Content of modal window (HTML): [" +
+                                        (window.Html).Replace("\n", "").Replace("\r", "") + "]", Logging.Red);
+                            window.AnswerModal("quit");
+                            //_directEve.ExecuteCommand(DirectCmd.CmdQuitGame);
+                        }
+
                         if (restart)
                         {
                             Logging.Log("Startup", "Restarting eve...", Logging.Red);
@@ -512,7 +541,7 @@ namespace Questor
                             continue;
                         }
                         
-                        if (needhumanintervention)
+                        if (needHumanIntervention)
                         {
                             Logging.Log("Startup", "ERROR! - Human Intervention is required in this case: halting all login attempts - ERROR!", Logging.Red);
                             Logging.Log("Startup", "window.Name is: " + window.Name, Logging.Red);
@@ -524,7 +553,7 @@ namespace Questor
                             Logging.Log("Startup", "window.IsKillable is: " + window.IsKillable, Logging.Red);
                             Logging.Log("Startup", "window.Viewmode is: " + window.ViewMode, Logging.Red);
                             Logging.Log("Startup", "ERROR! - Human Intervention is required in this case: halting all login attempts - ERROR!", Logging.Red);
-                            _humaninterventionrequired = true;
+                            _humanInterventionRequired = true;
                             return;
                         }
                     }
@@ -534,7 +563,7 @@ namespace Questor
 
                     if (window.Name == "telecom")
                         continue;
-                    Logging.Log("Startup", "We've got an unexpected window, auto login halted.", Logging.Red);
+                    Logging.Log("Startup", "We have an unexpected window, auto login halted.", Logging.Red);
                     Logging.Log("Startup", "window.Name is: " + window.Name, Logging.Red);
                     Logging.Log("Startup", "window.Html is: " + window.Html, Logging.Red);
                     Logging.Log("Startup", "window.Caption is: " + window.Caption, Logging.Red);
@@ -561,7 +590,7 @@ namespace Questor
 
                     if (info == null)
                     {
-                        Logging.Log("Startup", "DirectEve.RunScript() doesn't exist.  Upgrade DirectEve.dll!", Logging.Red);
+                        Logging.Log("Startup", "DirectEve.RunScript() does not exist.  Upgrade DirectEve.dll!", Logging.Red);
                     }
                     else
                     {

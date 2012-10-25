@@ -1,4 +1,4 @@
-
+﻿
 namespace Questor.Modules.Logging
 {
     using System;
