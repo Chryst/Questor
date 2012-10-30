@@ -208,27 +208,34 @@ namespace Questor.Modules.Logging
             //this is where it gets the directory and looks at
             //the files in the directory to compare the last write time
             //against the keepdate variable.
-
-            DirectoryInfo fileListing = new DirectoryInfo(Settings.Instance.ConsoleLogPath);
-
-            if (fileListing.Exists)
+            try
             {
-                foreach (FileInfo log in fileListing.GetFiles(searchpattern))
+                DirectoryInfo fileListing = new DirectoryInfo(Settings.Instance.ConsoleLogPath);
+
+                if (fileListing.Exists)
                 {
-                    if (log.LastWriteTime <= keepdate)
+                    foreach (FileInfo log in fileListing.GetFiles(searchpattern))
                     {
-                        try
+                        if (log.LastWriteTime <= keepdate)
                         {
-                            Logging.Log("Logging", "Removing old console log named [" + log.Name + "] Dated [" + log.LastWriteTime + "]", Logging.White);
-                            log.Delete();
-                        }
-                        catch (Exception ex)
-                        {
-                            Logging.Log("Logging", "Unable to delete log [" + ex.Message + "]", Logging.White);
+                            try
+                            {
+                                Logging.Log("Logging", "Removing old console log named [" + log.Name + "] Dated [" + log.LastWriteTime + "]", Logging.White);
+                                log.Delete();
+                            }
+                            catch (Exception ex)
+                            {
+                                Logging.Log("Logging", "Unable to delete log [" + ex.Message + "]", Logging.White);
+                            }
                         }
                     }
                 }
             }
+            catch (Exception exception)
+            {
+                Logging.Log("Logging.MaintainConsoleLogs", "Unable to maintain console logs: [" + exception + "]", Logging.Teal);
+            }
+
         }
     }
 }

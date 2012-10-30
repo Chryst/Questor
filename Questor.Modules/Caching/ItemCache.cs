@@ -176,7 +176,7 @@ namespace Questor.Modules.Caching
                 if (TypeId == 3804) return true;    // VIPs
                 if (TypeId == 3806) return true;    // Refugees
                 if (TypeId == 3808) return true;    // Prisoners
-                //if (TypeId == 3810) return true;    // Marines **Common Mission Completion Item
+                //if (TypeId == 3810) return true;  // Marines **Common Mission Completion Item
                 if (TypeId == 12865) return true;   // Quafe Ultra
                 if (TypeId == 13267) return true;   // Janitor
                 if (TypeId == 17765) return true;   // Exotic Dancers

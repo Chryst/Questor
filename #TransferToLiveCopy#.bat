@@ -104,6 +104,9 @@ if not exist "%innerspacedotnetdirectory%invtypes.xml" copy /y ".\output\invtype
 @Echo.
 @Echo *** only copy InvIgnore.xml if one does not already exist (it contains invtypes that will not be sold by valuedump)
 if not exist "%innerspacedotnetdirectory%InvIgnore.xml" copy /y ".\output\InvIgnore.xml" "%innerspacedotnetdirectory%"
+@Echo.
+@Echo *** only copy Schedules.xml if one does not already exist (it contains the schedule your toons will use to logoff and login if you start eve early)
+if not exist "%innerspacedotnetdirectory%Schedules.xml" copy /y ".\output\Schedules.xml" "%innerspacedotnetdirectory%"
 @Echo off
 
 goto :done

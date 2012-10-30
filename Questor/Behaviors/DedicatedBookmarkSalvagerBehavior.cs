@@ -112,8 +112,6 @@ namespace Questor.Behaviors
             }
             else
             {
-                //_agentInteraction.AgentId = agent.AgentId;
-                //_combatMissionCtrl.AgentId = agent.AgentId;
                 _arm.AgentId = agent.AgentId;
                 _statistics.AgentID = agent.AgentId;
                 AgentID = agent.AgentId;
@@ -489,6 +487,7 @@ namespace Questor.Behaviors
                         _States.CurrentDedicatedBookmarkSalvagerBehaviorState = DedicatedBookmarkSalvagerBehaviorState.GotoSalvageBookmark;
                         //we know we are connected here
                         Cache.Instance.LastKnownGoodConnectedTime = DateTime.Now;
+                        Cache.Instance.LastInWarp = DateTime.Now;
                         Cache.Instance.MyWalletBalance = Cache.Instance.DirectEve.Me.Wealth;
                         return;
                     }
@@ -514,6 +513,7 @@ namespace Questor.Behaviors
                         //we know we are connected here
                         Cache.Instance.LastKnownGoodConnectedTime = DateTime.Now;
                         Cache.Instance.MyWalletBalance = Cache.Instance.DirectEve.Me.Wealth;
+                        Cache.Instance.LastInWarp = DateTime.Now;
 
                         _States.CurrentDedicatedBookmarkSalvagerBehaviorState = DedicatedBookmarkSalvagerBehaviorState.Salvage;
                         Traveler.Destination = null;

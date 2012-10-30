@@ -265,9 +265,9 @@ namespace Questor.Modules.BackgroundTasks
                                     Logging.Log("Panic", "Docking with [" + station.Name + "][" + Math.Round((station.Distance / 1000) / 149598000, 2) + " AU away]", Logging.Red);
                                     station.Dock();
                                 }
-                                else
+                                else if (Math.Round(Cache.Instance.NextUndockAction.Subtract(DateTime.Now).TotalSeconds, 0) > 2)
                                 {
-                                    Logging.Log("Panic", "Docking will be attempted in [" + Math.Round(Cache.Instance.NextUndockAction.Subtract(DateTime.Now).TotalSeconds, 0) + "sec]", Logging.Red);
+                                    Logging.Log("Panic", "Docking will be attempted in [" + Math.Round(Cache.Instance.NextUndockAction.Subtract(DateTime.Now).TotalSeconds, 0) + "sec]", Logging.Red);    
                                 }
                             }
                             else

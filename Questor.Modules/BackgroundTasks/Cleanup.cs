@@ -326,15 +326,34 @@ namespace Questor.Modules.BackgroundTasks
                 }
             }
             Logging.Log("Questor", "Autostart is false: Stopping EVE with quit command (if EVE is going to restart it will do so externally)", Logging.White);
-            if (Cache.Instance.CloseQuestorEndProcess)
+            if ((CloseQuestorDelay.AddSeconds(-10) == DateTime.Now) && (!_closeQuestor10SecWarningDone))
             {
-                Logging.Log("Questor", "Closing with: Process.GetCurrentProcess().Kill()", Logging.White);
-                Process.GetCurrentProcess().Kill();
+                _closeQuestor10SecWarningDone = true;
+                Logging.Log("Questor", "Exiting eve in 10 seconds", Logging.White);
+                Cache.Instance.DirecteveDispose();
+                if (Cache.Instance.CloseQuestorEndProcess)
+                {
+                    Logging.Log("Questor", "Closing with: Process.GetCurrentProcess().Kill()", Logging.White);
+                    Process.GetCurrentProcess().Kill();
+                    return false;
+                }
+                Logging.Log("Questor", "Closing with: DirectCmd.CmdQuitGame", Logging.White);
+                Cache.Instance.DirectEve.ExecuteCommand(DirectCmd.CmdQuitGame);
                 return false;
             }
+            if (CloseQuestorDelay < DateTime.Now)
+            {
+                if (Cache.Instance.CloseQuestorEndProcess)
+                {
+                    Logging.Log("Questor", "Closing with: Process.GetCurrentProcess().Kill()", Logging.White);
+                    Process.GetCurrentProcess().Kill();
+                    return false;
+                }
 
-            Logging.Log("Questor", "Closing with: DirectCmd.CmdQuitGame", Logging.White);
-            Cache.Instance.DirectEve.ExecuteCommand(DirectCmd.CmdQuitGame);
+                Logging.Log("Questor", "Closing with: DirectCmd.CmdQuitGame", Logging.White);
+                Cache.Instance.DirectEve.ExecuteCommand(DirectCmd.CmdQuitGame);
+                return false;
+            }
             return false;
         }
 

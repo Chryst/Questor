@@ -65,9 +65,7 @@ namespace Questor.Modules.BackgroundTasks
                                     }
                                 }
                                 thisBigObject.Orbit((int)Distance.SafeDistancefromStructure * SafeDistanceFromStructureMultiplier);
-                                Logging.Log(module,
-                                           ": initiating Orbit of [" + thisBigObject.Name +
-                                              "] orbiting at [" + ((int)Distance.SafeDistancefromStructure * SafeDistanceFromStructureMultiplier) + "]", Logging.White);
+                                Logging.Log(module, ": initiating Orbit of [" + thisBigObject.Name + "] orbiting at [" + ((int)Distance.SafeDistancefromStructure * SafeDistanceFromStructureMultiplier) + "]", Logging.White);
                             }
                             return;
                             //we are still too close, do not continue through the rest until we are not "too close" anymore
@@ -93,7 +91,7 @@ namespace Questor.Modules.BackgroundTasks
                     //Logging.Log("CombatMissionCtrl." + _pocketActions[_currentAction] ,"StartOrbiting: Target in range");
                     if (!Cache.Instance.IsApproachingOrOrbiting)
                     {
-                        Logging.Log("CombatMissionCtrl.NavigateIntoRange", "We are not approaching nor orbiting", Logging.Teal);
+                        if (Settings.Instance.DebugNavigateOnGrid) Logging.Log("CombatMissionCtrl.NavigateIntoRange", "We are not approaching nor orbiting", Logging.Teal);
 
                         EntityCache structure = Cache.Instance.Entities.Where(i => i.Name.Contains("Gate")).OrderBy(t => t.Distance).ThenBy(t => t.Distance).FirstOrDefault();
 
@@ -102,17 +100,17 @@ namespace Questor.Modules.BackgroundTasks
                             structure.Orbit(Cache.Instance.OrbitDistance);
                             Logging.Log(module, "Initiating Orbit [" + structure.Name + "][ID: " + structure.Id + "]", Logging.Teal);
                         }
-                        else
+                        else if (DateTime.Now > Cache.Instance.NextAlign) //this will spam a bit until we know what "mode" our activeship is when aligning
                         {
-                            target.Orbit(Cache.Instance.OrbitDistance);
-                            Logging.Log(module, "Initiating Orbit [" + target.Name + "][ID: " + target.Id + "]", Logging.Teal);
+                            Cache.Instance.Star.AlignTo();
+                            Logging.Log(module, "Aligning to the Star so we might possibly hit [" + target.Name + "][ID: " + target.Id + "][ActiveShip.Entity.Mode:[" + Cache.Instance.DirectEve.ActiveShip.Entity.Mode + "]", Logging.Teal);
                         }
                         return;
                     }
                 }
                 else
                 {
-                    Logging.Log(module, "Possible out of range. ignoring orbit around structure", Logging.Teal);
+                    Logging.Log(module, "Out of range. ignoring orbit around structure", Logging.Teal);
                     target.Orbit(Cache.Instance.OrbitDistance);
                     Logging.Log(module, "Initiating Orbit [" + target.Name + "][ID: " + target.Id + "]", Logging.Teal);
                     Cache.Instance.NextOrbit = DateTime.Now.AddSeconds(Time.Instance.OrbitDelay_seconds);
@@ -208,7 +206,7 @@ namespace Questor.Modules.BackgroundTasks
                             return;
                         }
                         //I think when approach distance will be reached ship will be stopped so this is not needed
-                        if (target.Distance <= Cache.Instance.MaxRange && Cache.Instance.Approaching != null)
+                        if (target.Distance <= Cache.Instance.MaxRange - 5000 && Cache.Instance.Approaching != null)
                         {
                             if (target.IsNPCFrigate)
                             {
@@ -218,7 +216,7 @@ namespace Questor.Modules.BackgroundTasks
                             }
                             Cache.Instance.DirectEve.ExecuteCommand(DirectCmd.CmdStopShip);
                             Cache.Instance.Approaching = null;
-                            Logging.Log(module, "Using Weapons Range: Stop ship, target is in orbit range", Logging.Teal);
+                            Logging.Log(module, "Using Weapons Range: Stop ship, target is more than 5k inside weapons range", Logging.Teal);
                             return;
                         }
 

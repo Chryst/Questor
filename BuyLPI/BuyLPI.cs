@@ -133,10 +133,11 @@ namespace BuyLPI
                 return;
             }
 
-            if (!Cache.Instance.OpenItemsHangarAsLootHangar("BuyLPI")) return;
+            if (!Cache.Instance.OpenItemsHangar("BuyLPI")) return;
 
-            DirectLoyaltyPointStoreWindow lpstore = _directEve.Windows.OfType<DirectLoyaltyPointStoreWindow>().FirstOrDefault();
-            if (lpstore == null)
+            if (!Cache.Instance.OpenLPStore("BuyLPI")) return;
+
+            if (Cache.Instance.LPStore == null)
             {
                 _nextAction = DateTime.Now.AddMilliseconds(WaitMillis);
                 _directEve.ExecuteCommand(DirectCmd.OpenLpstore);
@@ -146,11 +147,11 @@ namespace BuyLPI
             }
 
             // Wait for the amount of LP to change
-            if (_lastLoyaltyPoints == lpstore.LoyaltyPoints)
+            if (_lastLoyaltyPoints == Cache.Instance.LPStore.LoyaltyPoints)
                 return;
 
             // Do not expect it to be 0 (probably means its reloading)
-            if (lpstore.LoyaltyPoints == 0)
+            if (Cache.Instance.LPStore.LoyaltyPoints == 0)
             {
                 if (_loyaltyPointTimeout < DateTime.Now)
                 {
@@ -161,10 +162,10 @@ namespace BuyLPI
                 return;
             }
 
-            _lastLoyaltyPoints = lpstore.LoyaltyPoints;
+            _lastLoyaltyPoints = Cache.Instance.LPStore.LoyaltyPoints;
 
             // Find the offer
-            DirectLoyaltyPointOffer offer = lpstore.Offers.FirstOrDefault(o => o.TypeId.ToString(CultureInfo.InvariantCulture) == _type || String.Compare(o.TypeName, _type, StringComparison.OrdinalIgnoreCase) == 0);
+            DirectLoyaltyPointOffer offer = Cache.Instance.LPStore.Offers.FirstOrDefault(o => o.TypeId.ToString(CultureInfo.InvariantCulture) == _type || String.Compare(o.TypeName, _type, StringComparison.OrdinalIgnoreCase) == 0);
             if (offer == null)
             {
                 Logging.Log("BuyLPI", " Can't find offer with type name/id: [" + _type + "]", Logging.White);
@@ -191,7 +192,7 @@ namespace BuyLPI
             // Check items
             foreach (DirectLoyaltyPointOfferRequiredItem requiredItem in offer.RequiredItems)
             {
-                DirectItem item = Cache.Instance.LootHangar.Items.FirstOrDefault(i => i.TypeId == requiredItem.TypeId);
+                DirectItem item = Cache.Instance.ItemHangar.Items.FirstOrDefault(i => i.TypeId == requiredItem.TypeId);
                 if (item == null || item.Quantity < requiredItem.Quantity)
                 {
                     Logging.Log("BuyLPI", "Missing [" + requiredItem.Quantity + "] x [" +

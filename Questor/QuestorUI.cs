@@ -1533,9 +1533,9 @@ namespace Questor
         private void btnStackAmmoHangar_Click(object sender, EventArgs e)
         {
             Cache.Instance.Paused = false;
-            Logging.Log("QuestorUI", "Stack LootHangar button was pressed", Logging.Teal);
+            Logging.Log("QuestorUI", "Stack AmmoHangar button was pressed", Logging.Teal);
             _States.CurrentQuestorState = QuestorState.DebugHangarsBehavior;
-            _States.CurrentDebugHangarBehaviorState = DebugHangarsBehaviorState.StackLootHangar;
+            _States.CurrentDebugHangarBehaviorState = DebugHangarsBehaviorState.StackAmmoHangar;
         }
 
         private void bttnCloseAmmoHangar_Click_1(object sender, EventArgs e)
@@ -1557,9 +1557,9 @@ namespace Questor
         private void btnStackLootHangar_Click(object sender, EventArgs e)
         {
             Cache.Instance.Paused = false;
-            Logging.Log("QuestorUI", "Stack AmmoHangar button was pressed", Logging.Teal);
+            Logging.Log("QuestorUI", "Stack LootHangar button was pressed", Logging.Teal);
             _States.CurrentQuestorState = QuestorState.DebugHangarsBehavior;
-            _States.CurrentDebugHangarBehaviorState = DebugHangarsBehaviorState.StackAmmoHangar;
+            _States.CurrentDebugHangarBehaviorState = DebugHangarsBehaviorState.StackLootHangar;
         }
 
         private void bttnCloseLootHangar_Click_1(object sender, EventArgs e)

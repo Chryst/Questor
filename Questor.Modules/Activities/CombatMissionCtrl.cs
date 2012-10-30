@@ -287,21 +287,11 @@ namespace Questor.Modules.Activities
                         if (!Combat.ReloadAll(target)) return;
                     }
 
-                    if (Cache.Instance.DirectEve.ActiveShip.MaxLockedTargets > 0)
+                    if (Cache.Instance.PriorityTargets.All(pt => pt.Id != target.Id))
                     {
-                        if (target.IsTarget || target.IsTargeting) //This target is already targeted no need to target it again
-                        {
-                            //noop
-                        }
-                        else if (!Cache.Instance.IgnoreTargets.Contains(target.Name.Trim()))
-                        {
-                            Logging.Log("CombatMissionCtrl." + _pocketActions[_currentAction], "Targeting [" + target.Name + "][ID: " + target.Id + "][" + Math.Round(target.Distance / 1000, 0) + "k away]", Logging.Teal);
-                            target.LockTarget();
-                        }
-                        else if (Cache.Instance.IgnoreTargets.Contains(target.Name.Trim()))
-                        {
-                            Logging.Log("CombatMissionCtrl." + _pocketActions[_currentAction], "We have attempted to target an NPC that is on the ignore list (why?) Name [" + target.Name + "][" + target.Id + "][" + Math.Round(target.Distance / 1000, 0) + "k away]", Logging.Teal);
-                        }
+                        //Adds the target we want to kill to the priority list so that combat.cs will kill it (especially if it is an LCO this is important)
+                        Logging.Log("CombatMissionCtrl." + _pocketActions[_currentAction], "Adding [" + target.Name + "][ID: " + target.Id + "] as a priority target", Logging.Teal);
+                        Cache.Instance.AddPriorityTargets(new[] { target }, Priority.PriorityKillTarget);
                     }
                 }
                 NavigateOnGrid.NavigateIntoRange(target, "CombatMissionCtrl." + _pocketActions[_currentAction]);
@@ -389,8 +379,10 @@ namespace Questor.Modules.Activities
                         }
                         else if (!Cache.Instance.IgnoreTargets.Contains(target.Name.Trim()))
                         {
-                            Logging.Log("CombatMissionCtrl." + _pocketActions[_currentAction], "Targeting [" + target.Name + "][ID: " + target.Id + "][" + Math.Round(target.Distance / 1000, 0) + "k away]", Logging.Teal);
-                            target.LockTarget();
+                            if (target.LockTarget())
+                            {
+                                Logging.Log("CombatMissionCtrl." + _pocketActions[_currentAction], "Targeting [" + target.Name + "][ID: " + target.Id + "][" + Math.Round(target.Distance / 1000, 0) + "k away]", Logging.Teal);    
+                            }
                         }
 
                         if (Cache.Instance.IgnoreTargets.Contains(target.Name.Trim()))
