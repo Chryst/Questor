@@ -13,6 +13,7 @@ namespace Questor.Modules.Caching
     using System;
     using System.Linq;
     using DirectEve;
+    using System.Collections.Generic;
     using global::Questor.Modules.Lookup;
     using global::Questor.Modules.Logging;
 
@@ -725,14 +726,18 @@ namespace Questor.Modules.Caching
             }
         }
 
-        public void LockTarget()
+        public bool LockTarget()
         {
             // If the bad idea is attacking, attack back
             if (IsBadIdea && !IsAttacking)
             {
                 Logging.Log("EntityCache", "Attempting to target a player or concord entity! [" + Name + "]", Logging.White);
-                return;
+                return false;
             }
+
+            // Remove the target info (its been targeted)
+            foreach (EntityCache target in Cache.Instance.Entities.Where(e => e.IsTarget).Where(t => Cache.Instance.TargetingIDs.ContainsKey(t.Id)))
+                Cache.Instance.TargetingIDs.Remove(target.Id);
 
             if (Cache.Instance.TargetingIDs.ContainsKey(Id))
             {
@@ -743,13 +748,17 @@ namespace Questor.Modules.Caching
                 if (seconds < 20)
                 {
                     Logging.Log("EntityCache", "LockTarget is ignored for [" + Name + "][" + Id + "], can retarget in [" + Math.Round(20 - seconds, 0) + "]", Logging.White);
-                    return;
+                    return false;
                 }
             }
 
             // Only add targeting id's when its actually being targeted
             if (_directEntity != null && _directEntity.LockTarget())
+            {
                 Cache.Instance.TargetingIDs[Id] = DateTime.Now;
+                return true;    
+            }
+            return false;
         }
 
         public void UnlockTarget()

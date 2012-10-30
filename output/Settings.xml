@@ -1,33 +1,44 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <settings>
   <!--                                                -->
-  <!--         DEBUG SETTINGS         -->
+  <!--         DEBUG SETTINGS        -->
   <!--                                                -->
   
-  <!-- debugStates: creates more verbose logging: use for debugging purposes only -->
-  <debugStates>false</debugStates>  <!-- default is false -->
-  <!-- debugPerformance: creates more verbose logging: use for debugging purposes only -->
-  <debugPerformance>false</debugPerformance>  <!-- default is false -->
-  <!-- debugCurrentTarget: Shows detailed Shields and Armor levels for the currenttarget as things get killed (or not) -->  
-  <detailedCurrentTargetHealthLogging>false</detailedCurrentTargetHealthLogging>
-  <debugLootWrecks>false</debugLootWrecks>
   <debugActivateWeapons>false</debugActivateWeapons>
-  <debugreloadorChangeAmmo>false</debugreloadorChangeAmmo>
-  <debugStatistics>false</debugStatistics>
-  <debugGotobase>false</debugGotobase>
-  <debugIdle>false</debugIdle>
-  <debugAutoStart>false</debugAutoStart>
-  <debugDecline>false</debugDecline>
-  <debugHangars>false</debugHangars>
-  <debugLogging>false</debugLogging>
-  <debugSalvage>false</debugSalvage>
-  <debugUI>false</debugUI>
-  <debugReloadAll>false</debugReloadAll>
   <debugAllMissionsOnBlackList>false</debugAllMissionsOnBlackList>
   <debugAllMissionsOnGreyList>false</debugAllMissionsOnGreyList>
+  <debugArm>false</debugArm>
   <debugAttachVSDebugger>false</debugAttachVSDebugger>
+  <debugAutoStart>false</debugAutoStart>
+  <debugCleanup>false</debugCleanup>
+  <debugDecline>false</debugDecline>
+  <debugDefense>false</debugDefense>
+  <debugDroneHealth>false</debugDroneHealth>
+  <debugExceptions>false</debugExceptions>
+  <debugGotobase>false</debugGotobase>
+  <debugHangars>false</debugHangars>
+  <debugIdle>false</debugIdle>
+  <debugItemHangar>false</debugItemHangar>
+  <debugLoadScripts>false</debugLoadScripts>
+  <debugLogging>false</debugLogging>
+  <debugLootWrecks>false</debugLootWrecks>
+  <debugNavigateOnGrid>false</debugNavigateOnGrid>
+  <debugOnframe>false</debugOnframe>
+  <debugPerformance>false</debugPerformance>
+  <debugReloadAll>false</debugReloadAll>
+  <debugReloadorChangeAmmo>false</debugReloadorChangeAmmo>
+  <debugSalvage>false</debugSalvage>
+  <debugScheduler>false</debugScheduler>
+  <debugStates>false</debugStates>
+  <debugStatistics>false</debugStatistics>
+  <debugTraveler>false</debugTraveler>
+  <debugUI>false</debugUI>
+  <debugUnloadLoot>false</debugUnloadLoot>
+  <debugValuedump>false</debugValuedump>
+  <detailedCurrentTargetHealthLogging>false</detailedCurrentTargetHealthLogging>
+  <defendWhileTraveling>true</defendWhileTraveling>
   <useInnerspace>true</useInnerspace>
-  
+  <setEveClientDestinationWhenTraveling>false</setEveClientDestinationWhenTraveling>
   
   <!--                                                -->
   <!--          MISC SETTINGS          -->
@@ -43,6 +54,8 @@
   <minimumDelay>20</minimumDelay><!-- default is 20 -->
   <!-- RandomDelay is a number and is a random amount of seconds it will wait between getting missions in station added with minimumdelay or by itself -->
   <randomDelay>45</randomDelay><!-- default is 45 -->
+  <!-- Use Station repair Service if it exists-->
+  <useStationRepair>true</useStationRepair>
   
   <!--                                                -->
   <!--   CONSOLE LOG SETTINGS   -->
@@ -129,7 +142,7 @@
 
   
   <!--                                                                                                     -->
-  <!-- STORAGE LOCATION FOR LOOT, AMNMO AND BOOKMARKS -->
+  <!-- STORAGE LOCATION FOR LOOT, AMMO AND BOOKMARKS -->
   <!--                                                                                                     -->
 
   <!-- Corporation hangar to use for loot (empty is personal hangar) -->
@@ -407,8 +420,7 @@
   <longRangeDroneRecallCapacitorPct>30</longRangeDroneRecallCapacitorPct>
   <!-- Drones normally kill low value targets (frigates) first. If you would prefer your drones to kill high value targets first set this to true -->
   <dronesKillHighValueTargets>false</dronesKillHighValueTargets>
-  <!-- When docked drones below this number of hitpoints will be removed from your drone bay and put in the loothangar - so they can be manually repaired (we cannot auto repair them) -->
-  <belowThisHealthLevelRemoveFromDroneBay>150</belowThisHealthLevelRemoveFromDroneBay> <!-- light drones have a total of about 300 HP -->
+
   <!--                                                        -->
   <!-- MISSION BLACKLIST SETTINGS -->
   <!--                                                        -->
@@ -439,8 +451,16 @@
   <!--                                                -->
   
   <!-- X Position of Questor Window -->
-  <windowXPosition>1600</windowXPosition><!-- needs to be customized -->
+  <windowXPosition>1</windowXPosition> <!-- needs to be customized -->
   <!-- Y Position of Questor Window -->
-  <windowYPosition>1050</windowYPosition><!-- needs to be customized -->
+  <windowYPosition>1</windowYPosition> <!-- needs to be customized -->
 
+  <!-- X Position of EVE Window -->
+  <eveWindowXPosition>0</eveWindowXPosition> <!-- blank leaves the EVE Window Untouched, if you want to use this you must define all 4 settings -->
+  <!-- Y Position of EVE Window -->
+  <eveWindowYPosition>0</eveWindowYPosition> <!-- blank leaves the EVE Window Untouched, if you want to use this you must define all 4 settings  -->
+  <!-- X Size of EVE Window -->
+  <eveWindowXSize>0</eveWindowXSize> <!-- blank leaves the EVE Window Untouched, if you want to use this you must to definel 4 settings -->
+  <!-- Y Size of EVE Window -->
+  <eveWindowYSize>0</eveWindowYSize> <!-- blank leaves the EVE Window Untouched, if you want to use this you must to definel 4 settings  -->
 </settings>

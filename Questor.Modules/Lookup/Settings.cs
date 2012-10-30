@@ -21,6 +21,7 @@ namespace Questor.Modules.Lookup
     using Questor.Modules.Actions;
     using Questor.Modules.Caching;
     using Questor.Modules.Logging;
+    using Questor.Modules.States;
 
     public class Settings
     {
@@ -62,22 +63,30 @@ namespace Questor.Modules.Lookup
         // Debug Variables
         //
         public bool DebugActivateWeapons { get; set; }
-        public bool DebugAttachVSDebugger { get; set; }
-        public bool DebugAutoStart { get; set; }
-        public bool DebugCleanup { get; set; }
-        public bool DebugDecline { get; set; }
+        public bool DebugAgentInteractionReplyToAgent { get; set; }
         public bool DebugAllMissionsOnBlackList { get; set; }
         public bool DebugAllMissionsOnGreyList { get; set; }
+        public bool DebugArm { get; set; }
+        public bool DebugAttachVSDebugger { get; set; }
+        public bool DebugAutoStart { get; set; }
+        public bool DebugBlackList { get; set; }
+        public bool DebugCargoHold { get; set; }
+        public bool DebugCleanup { get; set; }
+        public bool DebugDecline { get; set; }
         public bool DebugDefense { get; set; }
         public bool DebugDroneHealth { get; set; }
         public bool DebugExceptions { get; set; }
+        public bool DebugFittingMgr { get; set; }
         public bool DebugGotobase { get; set; }
+        public bool DebugGreyList { get; set; }
         public bool DebugHangars { get; set; }
         public bool DebugIdle { get; set; }
+        public bool DebugItemHangar { get; set; }
         public bool DebugLoadScripts { get; set; }
         public bool DebugLogging { get; set; }
         public bool DebugLootWrecks { get; set; }
         public bool DebugNavigateOnGrid { get; set; }
+        public bool DebugMissionFittings { get; set; }
         public bool DebugOnframe { get; set; }
         public bool DebugPerformance { get; set; }
         public bool DebugReloadAll { get; set; }
@@ -85,6 +94,7 @@ namespace Questor.Modules.Lookup
         public bool DebugSalvage { get; set; }
         public bool DebugScheduler { get; set; }
         public bool DebugStatistics { get; set; }
+        public bool DebugTractorBeams { get; set; }
         public bool DebugTraveler { get; set; }
         public bool DebugUI { get; set; }
         public bool DebugUnloadLoot { get; set; }
@@ -397,7 +407,16 @@ namespace Questor.Modules.Lookup
         // Questor GUI location settings
         //
         public int? WindowXPosition { get; set; }
+
         public int? WindowYPosition { get; set; }
+
+        public int? EVEWindowXPosition { get; set; }
+
+        public int? EVEWindowYPosition { get; set; }
+
+        public int? EVEWindowXSize { get; set; }
+
+        public int? EVEWindowYSize { get; set; }
 
         //
         // path information - used to load the XML and used in other modules
@@ -427,7 +446,9 @@ namespace Questor.Modules.Lookup
                 {
                     Logging.Log("Settings", "CharacterName not defined! - Are we still logged in? Did we lose connection to eve? Questor should be restarting here.", Logging.White);
                     Settings.Instance.CharacterName = "NoCharactersLoggedInAnymore";
+                    Cache.Instance.EnteredCloseQuestor_DateTime = DateTime.Now;
                     Cache.Instance.SessionState = "Quitting";
+                    _States.CurrentQuestorState = QuestorState.CloseQuestor;
                     return;
                 }
                 
@@ -459,21 +480,29 @@ namespace Questor.Modules.Lookup
                 //LavishScript.ExecuteCommand("uplink echo Settings: unable to find [" + Settings.Instance.SettingsPath + "] loading default (bad! bad! bad!) settings: you should fix this! NOW.");
                 Logging.Log("Settings", "WARNING! unable to find [" + Settings.Instance.SettingsPath + "] loading default generic, and likely incorrect, settings: WARNING!", Logging.Orange);
                 DebugActivateWeapons = false;
-                DebugAttachVSDebugger = false;
-                DebugAutoStart = false;
-                DebugCleanup = false;
-                DebugDecline = false;
+                DebugAgentInteractionReplyToAgent = false;
                 DebugAllMissionsOnBlackList = false;
                 DebugAllMissionsOnGreyList = false;
+                DebugArm = false;
+                DebugAttachVSDebugger = false;
+                DebugAutoStart = false;
+                DebugBlackList = false;
+                DebugCargoHold = false;
+                DebugCleanup = false;
+                DebugDecline = false;
                 DebugDefense = false;
                 DebugDroneHealth = false;
                 DebugExceptions = false;
+                DebugFittingMgr = false;
                 DebugGotobase = false;
+                DebugGreyList = false;
                 DebugHangars = false;
                 DebugIdle = false;
+                DebugItemHangar = false;
                 DebugLoadScripts = false;
                 DebugLogging = false;
                 DebugLootWrecks = false;
+                DebugMissionFittings = false;
                 DebugNavigateOnGrid = false;
                 DebugOnframe = false;
                 DebugPerformance = false;
@@ -483,6 +512,7 @@ namespace Questor.Modules.Lookup
                 DebugScheduler = false;
                 DebugStates = false;
                 DebugStatistics = false;
+                DebugTractorBeams = false;
                 DebugTraveler = false;
                 DebugUI = false;
                 DebugUnloadLoot = false;
@@ -599,7 +629,10 @@ namespace Questor.Modules.Lookup
                 //windows position (needs to be changed, default is off screen)
                 WindowYPosition = 400;
                 //windows position (needs to be changed, default is off screen)
-
+                EVEWindowXPosition = 111;
+                EVEWindowYPosition = 111;
+                EVEWindowXSize = 111;
+                EVEWindowYSize = 111;
                 //
                 // Ship Names
                 //
@@ -793,21 +826,29 @@ namespace Questor.Modules.Lookup
                     // Debug Settings
                     // 
                     DebugActivateWeapons = (bool?)xml.Element("debugActivateWeapons") ?? false;
-                    DebugAttachVSDebugger = (bool?)xml.Element("debugAttachVSDebugger") ?? false;
-                    DebugAutoStart = (bool?)xml.Element("debugAutoStart") ?? false;
-                    DebugCleanup = (bool?)xml.Element("debugCleanup") ?? false;
-                    DebugDecline = (bool?)xml.Element("debugDecline") ?? false;
+                    DebugAgentInteractionReplyToAgent = (bool?)xml.Element("debugAgentInteractionReplyToAgent") ?? false;
                     DebugAllMissionsOnBlackList = (bool?)xml.Element("debugAllMissionsOnBlackList") ?? false;
                     DebugAllMissionsOnGreyList = (bool?)xml.Element("debugAllMissionsOnGreyList") ?? false;
+                    DebugArm = (bool?)xml.Element("debugArm") ?? false;
+                    DebugAttachVSDebugger = (bool?)xml.Element("debugAttachVSDebugger") ?? false;
+                    DebugAutoStart = (bool?)xml.Element("debugAutoStart") ?? false;
+                    DebugBlackList = (bool?)xml.Element("debugBlackList") ?? false;
+                    DebugCargoHold = (bool?)xml.Element("debugCargoHold") ?? false;
+                    DebugCleanup = (bool?)xml.Element("debugCleanup") ?? false;
+                    DebugDecline = (bool?)xml.Element("debugDecline") ?? false;
                     DebugDefense = (bool?)xml.Element("debugDefense") ?? false;
                     DebugDroneHealth = (bool?)xml.Element("debugDroneHealth") ?? false;
                     DebugExceptions = (bool?)xml.Element("debugExceptions") ?? false;
+                    DebugFittingMgr = (bool?)xml.Element("debugFittingMgr") ?? false;
                     DebugGotobase = (bool?)xml.Element("debugGotobase") ?? false;
+                    DebugGreyList = (bool?)xml.Element("debugGreyList") ?? false;
                     DebugHangars = (bool?)xml.Element("debugHangars") ?? false;
                     DebugIdle = (bool?)xml.Element("debugIdle") ?? false;
+                    DebugItemHangar = (bool?)xml.Element("debugItemHangar") ?? false;
                     DebugLoadScripts = (bool?)xml.Element("debugLoadScripts") ?? false;
                     DebugLogging = (bool?)xml.Element("debugLogging") ?? false;
                     DebugLootWrecks = (bool?)xml.Element("debugLootWrecks") ?? false;
+                    DebugMissionFittings = (bool?)xml.Element("debugMissionFittings") ?? false;
                     DebugNavigateOnGrid = (bool?)xml.Element("debugNavigateOnGrid") ?? false;
                     DebugOnframe = (bool?)xml.Element("debugOnframe") ?? false;
                     DebugPerformance = (bool?)xml.Element("debugPerformance") ?? false;                                     //enables more console logging having to do with the sub-states within each state
@@ -818,6 +859,7 @@ namespace Questor.Modules.Lookup
                     DebugStates = (bool?)xml.Element("debugStates") ?? false;                                               //enables more console logging having to do with the time it takes to execute each state
                     DebugStatistics = (bool?)xml.Element("debugStatistics") ?? false;
                     DebugTraveler = (bool?)xml.Element("debugTraveler") ?? false;
+                    DebugTractorBeams = (bool?)xml.Element("debugTractorBeams") ?? false;
                     DebugUI = (bool?)xml.Element("debugUI") ?? false;
                     DebugUnloadLoot = (bool?)xml.Element("debugUnloadLoot") ?? false;
                     DebugValuedump = (bool?)xml.Element("debugValuedump") ?? false;
@@ -836,6 +878,7 @@ namespace Questor.Modules.Lookup
                     {
                         Settings.Instance.CharacterMode = "Combat Missions".ToLower();
                     }
+
                     AutoStart = (bool?)xml.Element("autoStart") ?? false; // auto Start enabled or disabled by default?
                     MaxLineConsole = (int?)xml.Element("maxLineConsole") ?? 1000;
                     // maximum console log lines to show in the GUI
@@ -901,10 +944,33 @@ namespace Questor.Modules.Lookup
                     //
                     // Location of the Questor GUI on startup (default is off the screen)
                     //
-                    WindowXPosition = (int?)xml.Element("windowXPosition") ?? 1600;
-                    //windows position (needs to be changed, default is off screen)
-                    WindowYPosition = (int?)xml.Element("windowYPosition") ?? 1050;
-                    //windows position (needs to be changed, default is off screen)
+                    //X Questor GUI window position (needs to be changed, default is off screen)
+                    WindowXPosition = (int?)xml.Element("windowXPosition") ?? 1;
+                    //Y Questor GUI window position (needs to be changed, default is off screen)
+                    WindowYPosition = (int?)xml.Element("windowYPosition") ?? 1;
+                    //
+                    // Location of the EVE Window on startup (default is to leave the window alone)
+                    //
+                    try
+                    {
+                        //EVE Client window position
+                        EVEWindowXPosition = (int?)xml.Element("eveWindowXPosition") ?? 0;
+                        //EVE Client window position
+                        EVEWindowYPosition = (int?)xml.Element("eveWindowYPosition") ?? 0;
+                        //
+                        // Size of the EVE Window on startup (default is to leave the window alone)
+                        // This CAN and WILL distort the proportions of the EVE client if you configure it to do so.
+                        // ISBOXER arguably does this with more elegance...
+                        //
+                        //EVE Client window position
+                        EVEWindowXSize = (int?)xml.Element("eveWindowXSize") ?? 0;
+                        //EVE Client window position
+                        EVEWindowYSize = (int?)xml.Element("eveWindowYSize") ?? 0;
+                    }
+                    catch
+                    {
+                        Logging.Log("Settings","Invalid Format for eveWindow Settings - skipping",Logging.Teal);
+                    }
 
                     //
                     // Ship Names
@@ -1187,17 +1253,14 @@ namespace Questor.Modules.Lookup
                                 if (string.IsNullOrEmpty(DefaultFitting.Fitting))
                                 {
                                     UseFittingManager = false;
-                                    Logging.Log(
-                                        "Settings", "Error! No default fitting specified or fitting is incorrect.  Fitting manager will not be used.", Logging.Orange);
+                                    Logging.Log("Settings", "Error! No default fitting specified or fitting is incorrect.  Fitting manager will not be used.", Logging.Orange);
                                 }
-                                Logging.Log(
-                                    "Settings", "Faction Fittings defined. Fitting manager will be used when appropriate.", Logging.White);
+                                Logging.Log("Settings", "Faction Fittings defined. Fitting manager will be used when appropriate.", Logging.White);
                             }
                             else
                             {
                                 UseFittingManager = false;
-                                Logging.Log(
-                                    "Settings", "Error! No default fitting specified or fitting is incorrect.  Fitting manager will not be used.", Logging.Orange);
+                                Logging.Log("Settings", "Error! No default fitting specified or fitting is incorrect.  Fitting manager will not be used.", Logging.Orange);
                             }
                         }
                         else
@@ -1210,15 +1273,20 @@ namespace Questor.Modules.Lookup
                     // Fitting based on the name of the mission
                     //
                     MissionFitting.Clear();
-                    XElement missionFittings = xml.Element("missionfittings");
+                    XElement xmlElementMissionFittingsSection = xml.Element("missionfittings");
                     if (UseFittingManager) //no need to look for or load these settings if FittingManager is disabled
                     {
-                        if (missionFittings != null)
+                        if (xmlElementMissionFittingsSection != null)
                         {
                             Logging.Log("Settings", "Loading Mission Fittings", Logging.White);
-                            foreach (XElement missionfitting in missionFittings.Elements("missionfitting"))
+                            int i = 1;
+                            foreach (XElement missionfitting in xmlElementMissionFittingsSection.Elements("missionfitting"))
+                            {
                                 MissionFitting.Add(new MissionFitting(missionfitting));
-                            Logging.Log("Settings", "Mission Fittings now has [" + MissionFitting.Count + "] entries", Logging.White);
+                                if (Settings.Instance.DebugMissionFittings) Logging.Log("Settings.LoadMissionFittings", "[" + i + "] Mission Fitting [" + missionfitting + "]", Logging.Teal);
+                                i++;
+                            }
+                            Logging.Log("Settings", "        Mission Fittings now has [" + MissionFitting.Count + "] entries", Logging.White);
                         }
                     }
 
@@ -1226,26 +1294,37 @@ namespace Questor.Modules.Lookup
                     // Mission Blacklist
                     //
                     MissionBlacklist.Clear();
-                    XElement blacklist = xml.Element("blacklist");
-                    if (blacklist != null)
+                    XElement xmlElementBlackListSection = xml.Element("blacklist");
+                    if (xmlElementBlackListSection != null)
                     {
-                        Logging.Log("Settings","Loading Mission Blacklist",Logging.White);
-                        foreach (XElement BlacklistedMission in blacklist.Elements("mission"))
+                        Logging.Log("Settings", "Loading Mission Blacklistfrom", Logging.White);
+                        int i = 1;
+                        foreach (XElement BlacklistedMission in xmlElementBlackListSection.Elements("mission"))
+                        {
                             MissionBlacklist.Add((string)BlacklistedMission);
-                        Logging.Log("Settings", "Mission Blacklist now has [" + MissionBlacklist.Count + "] entries", Logging.White);
+                            if (Settings.Instance.DebugBlackList) Logging.Log("Settings.LoadBlackList", "[" + i + "] Blacklisted mission Name [" + (string)BlacklistedMission + "]", Logging.Teal);
+                            i++;
+                        }
+                        Logging.Log("Settings", "        Mission Blacklist now has [" + MissionBlacklist.Count + "] entries", Logging.White);
                     }
 
                     //
                     // Mission Greylist
                     //
                     MissionGreylist.Clear();
-                    XElement greylist = xml.Element("greylist");
-                    if (greylist != null)
+                    XElement xmlElementGreyListSection = xml.Element("graylist");
+                    
+                    if (xmlElementGreyListSection != null)
                     {
                         Logging.Log("Settings", "Loading Mission Greylist", Logging.White);
-                        foreach (XElement GreylistedMission in greylist.Elements("mission"))
+                        int i = 1;
+                        foreach (XElement GreylistedMission in xmlElementGreyListSection.Elements("mission"))
+                        {
                             MissionGreylist.Add((string)GreylistedMission);
-                        Logging.Log("Settings", "Mission Greylist now has [" + MissionBlacklist.Count + "] entries", Logging.White);
+                            if (Settings.Instance.DebugGreyList) Logging.Log("Settings.LoadGreyList", "[" + i + "] Greylisted mission Name [" + (string)GreylistedMission + "]", Logging.Teal);
+                            i++;
+                        }
+                        Logging.Log("Settings", "        Mission Greylist now has [" + MissionGreylist.Count + "] entries", Logging.White);
                     }
 
                     //
@@ -1258,11 +1337,11 @@ namespace Questor.Modules.Lookup
                         Logging.Log("Settings", "Loading Faction Blacklist", Logging.White);
                         foreach (XElement faction in factionblacklist.Elements("faction"))
                         {
-                            Logging.Log("Settings", "Missions from the faction [" + (string)faction + "] will be declined", Logging.White);
+                            Logging.Log("Settings", "        Missions from the faction [" + (string)faction + "] will be declined", Logging.White);
                             FactionBlacklist.Add((string)faction);
                         }
 
-                        Logging.Log("Settings", "Faction Blacklist now has [" + FactionBlacklist.Count + "] entries", Logging.White);
+                        Logging.Log("Settings", "        Faction Blacklist now has [" + FactionBlacklist.Count + "] entries", Logging.White);
                     }
                 }
             }

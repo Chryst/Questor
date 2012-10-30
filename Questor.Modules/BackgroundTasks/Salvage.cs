@@ -107,13 +107,24 @@ namespace Questor.Modules.BackgroundTasks
 
                 //for  Cache.Instance.UnlootedContainers.Contains()
                 bool currentWreckUnlooted = false;
-                foreach (EntityCache unlootedcontainer in Cache.Instance.UnlootedContainers)
+
+
+                if (Settings.Instance.DebugTractorBeams) Logging.Log("Salvage.ActivateTractorBeams", "MyShip.Velocity [" + Cache.Instance.MyShip.Velocity + "]", Logging.Teal);
+                if (Cache.Instance.MyShip.Velocity > 300)
                 {
-                    if (tractorBeam.TargetId == unlootedcontainer.Id)
+                    if (Settings.Instance.DebugTractorBeams) Logging.Log("Salvage.ActivateTractorBeams", "if (Cache.Instance.MyShip.Velocity > 300)", Logging.Teal);
+                    foreach (EntityCache unlootedcontainer in Cache.Instance.UnlootedContainers)
                     {
-                        currentWreckUnlooted = true;
-                        break;
-                    }
+                        if (tractorBeam.TargetId == unlootedcontainer.Id)
+                        {
+                            currentWreckUnlooted = true;
+                            break;
+                        }
+                    }    
+                }
+                else
+                {
+                    //if (Settings.Instance.DebugTractorBeams) Logging.Log("Salvage.ActivateTractorBeams", "if (!Cache.Instance.MyShip.Velocity > 300)", Logging.Teal);
                 }
                 
                 // If the wreck no longer exists, or its within loot range then disable the tractor beam

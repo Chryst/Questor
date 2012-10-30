@@ -92,14 +92,14 @@ namespace Questor.Modules.Logging
                 string currentPocketName = Cache.Instance.FilterPath("randomgrid");
                 try
                 {
-                    if (!String.IsNullOrEmpty(Cache.Instance.Mission.Name))
+                    if (!String.IsNullOrEmpty(Cache.Instance.MissionName))
                     {
-                        currentPocketName = Cache.Instance.FilterPath(Cache.Instance.Mission.Name);
+                        currentPocketName = Cache.Instance.FilterPath(Cache.Instance.MissionName);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Logging.Log("Statistics", "PocketObjectStatistics: is cache.Instance.Mission.Name null?: exception was [" + ex.Message + "]",
+                    Logging.Log("Statistics", "PocketObjectStatistics: is cache.Instance.MissionName null?: exception was [" + ex.Message + "]",
                                 Logging.White);
                 }
 
@@ -347,8 +347,7 @@ namespace Questor.Modules.Logging
             //    return;
 
             //agentID needs to change if its a storyline mission - so its assigned in storyline.cs to the various modules directly.
-            //Cache.Instance.Mission = Cache.Instance.GetAgentMission(Statistics.Instance.AgentID); cant we assume this is already up to date? I think we can.
-            string currentPocketName = Cache.Instance.FilterPath(Cache.Instance.Mission.Name);
+            string currentPocketName = Cache.Instance.FilterPath(Cache.Instance.MissionName);
             if (Settings.Instance.PocketStatistics)
             {
                 if (Settings.Instance.PocketStatsUseIndividualFilesPerPocket)
@@ -581,10 +580,10 @@ namespace Questor.Modules.Logging
                 line3 += ((long)Statistics.Instance.LootValue) + ";";                                                                        // Loot
                 line3 += ((long)Cache.Instance.Agent.LoyaltyPoints - Statistics.Instance.LoyaltyPoints) + ";";                               // LP
                 line3 += Statistics.Instance.DroneRecalls + ";";                                                                             // Lost Drones
-                line3 += "LostDrones:" + Statistics.Instance.LostDrones + ";";                                                                               // Lost Drones
+                line3 += "LostDrones:" + Statistics.Instance.LostDrones + ";";                                                               // Lost Drones
                 line3 += Statistics.Instance.AmmoConsumption + ";";                                                                          // Ammo Consumption
                 line3 += Statistics.Instance.AmmoValue + ";";                                                                                // Ammo Value
-                line3 += "Panics:" + Cache.Instance.PanicAttemptsThisMission + ";";                                                                      // Panics
+                line3 += "Panics:" + Cache.Instance.PanicAttemptsThisMission + ";";                                                          // Panics
                 line3 += ((int)Cache.Instance.LowestShieldPercentageThisMission) + ";";                                                      // Lowest Shield %
                 line3 += ((int)Cache.Instance.LowestArmorPercentageThisMission) + ";";                                                       // Lowest Armor %
                 line3 += ((int)Cache.Instance.LowestCapacitorPercentageThisMission) + ";";                                                   // Lowest Capacitor %
@@ -594,7 +593,7 @@ namespace Questor.Modules.Logging
                 line3 += Cache.Instance.MissionXMLIsAvailable.ToString(CultureInfo.InvariantCulture) + ";";
                 line3 += Cache.Instance.FactionName + ";";                                                                                   // FactionName that the mission is against
                 line3 += Cache.Instance.MissionSolarSystem + ";";                                                                            // SolarSystem the mission was located in
-                line3 += Cache.Instance.DungeonId + ";";                                                                            // DungeonID - the unique identifier for this mission 
+                line3 += Cache.Instance.DungeonId + ";";                                                                                     // DungeonID - the unique identifier for this mission 
                 line3 += "\r\n";
 
                 // The mission is finished

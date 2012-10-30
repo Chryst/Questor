@@ -38,26 +38,18 @@ namespace Questor.Modules.Actions
 
         public string MissionName;
 
-        private DateTime _nextAgentAction;
         private bool _agentStandingsCheckFlag;  //false;
-        private bool loadedAmmo = false;
-                
-        DateTime _agentStandingsCheckTimeOut = DateTime.MaxValue;
-
-        //private DateTime _waitingOnAgentResponse;
-        private bool _waitingOnMission;
-
-        private DateTime _waitingOnMissionTimer = DateTime.Now;
-
-        private bool _waitingOnAgentWindow;
-        private DateTime _waitingOnAgentWindowTimer = DateTime.Now;
-
         private bool _waitingOnAgentResponse;
-        private DateTime _waitingOnAgentResponseTimer = DateTime.Now;
+        private bool _waitingOnMission;
+        private bool loadedAmmo = false;
+        
         private DateTime _agentWindowTimeStamp = DateTime.MinValue;
-        private int AgentInteractionAttempts;
-
-        public bool WaitDecline { get; set; }
+        private DateTime _agentStandingsCheckTimeOut = DateTime.MaxValue;
+        private DateTime _nextAgentAction;
+        private DateTime _waitingOnAgentResponseTimer = DateTime.Now;
+        private DateTime _waitingOnMissionTimer = DateTime.Now;
+        
+        private int LoyaltyPointCounter;
 
         public AgentInteraction()
         {
@@ -83,9 +75,28 @@ namespace Questor.Modules.Actions
             AmmoToLoad.AddRange(Settings.Instance.Ammo.Where(a => damageTypes.Contains(a.DamageType)).Select(a => a.Clone()));
         }
 
-        private void WaitForConversation()
+        private void StartConversation(string module)
         {
-            WaitDecline = Settings.Instance.WaitDecline;
+            Cache.Instance.AgentEffectiveStandingtoMe = Cache.Instance.DirectEve.Standings.EffectiveStanding(AgentId, Cache.Instance.DirectEve.Session.CharacterId ?? -1);
+            Cache.Instance.AgentEffectiveStandingtoMeText = Cache.Instance.AgentEffectiveStandingtoMe.ToString("0.00");
+            //
+            // Standings Check: if this is a totally new agent this check will timeout after 20 seconds
+            //
+            if (DateTime.Now < _agentStandingsCheckTimeOut)
+            {
+                if (((int)Cache.Instance.AgentEffectiveStandingtoMe == (int)0.00) && (AgentId == Cache.Instance.AgentId))
+                {
+                    if (!_agentStandingsCheckFlag)
+                    {
+                        _agentStandingsCheckTimeOut = DateTime.Now.AddSeconds(20);
+                        _agentStandingsCheckFlag = true;
+                    }
+                    Logging.Log("AgentInteraction.StandingsCheck", " Agent [" + Cache.Instance.DirectEve.GetAgentById(AgentId).Name + "] Standings show as [" + Cache.Instance.AgentEffectiveStandingtoMe + " and must not yet be available. retrying for [" + Math.Round((double)_agentStandingsCheckTimeOut.Subtract(DateTime.Now).Seconds, 0) + " sec]", Logging.Yellow);
+                    return;
+                }
+            }
+
+            if (!Cache.Instance.OpenAgentWindow(module)) return;
 
             if (Purpose == AgentInteractionPurpose.AmmoCheck)
             {
@@ -98,15 +109,14 @@ namespace Questor.Modules.Actions
                 _States.CurrentAgentInteractionState = AgentInteractionState.ReplyToAgent;
                 _nextAgentAction = DateTime.Now.AddSeconds(3);
             }
+            return;
         }
 
-        private void ReplyToAgent()
+        private void ReplyToAgent(string module)
         {
-            _waitingOnAgentWindow = false;
-            if (Agent.Window == null) return;
+            if (!Cache.Instance.OpenAgentWindow(module)) return;
 
-            List<DirectAgentResponse> responses = Agent.Window.AgentResponses;
-            if (responses == null || responses.Count == 0)
+            if (Agent.Window.AgentResponses == null || !Agent.Window.AgentResponses.Any())
             {
                 if (_waitingOnAgentResponse == false)
                 {
@@ -117,27 +127,32 @@ namespace Questor.Modules.Actions
                 {
                     Logging.Log("AgentInteraction", "ReplyToAgent: agentWindowAgentresponses == null : trying to close the agent window", Logging.Yellow);
                     Agent.Window.Close();
-                    _waitingOnAgentWindowTimer = DateTime.Now;
                 }
                 return;
             }
 
+            if (Agent.Window.AgentResponses.Any())
+            {
+                if (Settings.Instance.DebugAgentInteractionReplyToAgent) Logging.Log(module, "we have Agent.Window.AgentResponces", Logging.Yellow);    
+            }
+
             _waitingOnAgentResponse = false;
 
-            DirectAgentResponse request = responses.FirstOrDefault(r => r.Text.Contains(RequestMission));
-            DirectAgentResponse complete = responses.FirstOrDefault(r => r.Text.Contains(CompleteMission));
-            DirectAgentResponse view = responses.FirstOrDefault(r => r.Text.Contains(ViewMission));
-            DirectAgentResponse accept = responses.FirstOrDefault(r => r.Text.Contains(Accept));
-            DirectAgentResponse decline = responses.FirstOrDefault(r => r.Text.Contains(Decline));
-            DirectAgentResponse delay = responses.FirstOrDefault(r => r.Text.Contains(Delay));
-            DirectAgentResponse quit = responses.FirstOrDefault(r => r.Text.Contains(Quit));
-            DirectAgentResponse close = responses.FirstOrDefault(r => r.Text.Contains(Close));
+            DirectAgentResponse request = Agent.Window.AgentResponses.FirstOrDefault(r => r.Text.Contains(RequestMission));
+            DirectAgentResponse complete = Agent.Window.AgentResponses.FirstOrDefault(r => r.Text.Contains(CompleteMission));
+            DirectAgentResponse view = Agent.Window.AgentResponses.FirstOrDefault(r => r.Text.Contains(ViewMission));
+            DirectAgentResponse accept = Agent.Window.AgentResponses.FirstOrDefault(r => r.Text.Contains(Accept));
+            DirectAgentResponse decline = Agent.Window.AgentResponses.FirstOrDefault(r => r.Text.Contains(Decline));
+            DirectAgentResponse delay = Agent.Window.AgentResponses.FirstOrDefault(r => r.Text.Contains(Delay));
+            DirectAgentResponse quit = Agent.Window.AgentResponses.FirstOrDefault(r => r.Text.Contains(Quit));
+            DirectAgentResponse close = Agent.Window.AgentResponses.FirstOrDefault(r => r.Text.Contains(Close));
 
             //
             // Read the possibly responces and make sure we are 'doing the right thing' - set AgentInteractionPurpose to fit the state of the agent window
             //
             if (Purpose != AgentInteractionPurpose.AmmoCheck) //do not change the AgentInteractionPurpose if we are checking which ammo type to use.
             {
+                if (Settings.Instance.DebugAgentInteractionReplyToAgent) Logging.Log(module, "if (Purpose != AgentInteractionPurpose.AmmoCheck) //do not change the AgentInteractionPurpose if we are checking which ammo type to use.", Logging.Yellow);
                 if (accept != null && decline != null && delay != null)
                 {
                     if (Purpose != AgentInteractionPurpose.StartMission)
@@ -436,40 +451,11 @@ namespace Questor.Modules.Actions
             return DamageType.EM;
         }
 
-        private void WaitForMission()
+        private void WaitForMission(string module)
         {
-            DirectAgentWindow agentWindow = Agent.Window;
-            if (agentWindow == null || !agentWindow.IsReady)
-            {
-                if (_waitingOnAgentWindow == false)
-                {
-                    _waitingOnAgentWindowTimer = DateTime.Now;
-                    _waitingOnAgentWindow = true;
-                }
-                if (DateTime.Now.Subtract(_waitingOnAgentWindowTimer).TotalSeconds > 10)
-                {
-                    Logging.Log("AgentInteraction", "WaitForMission: Agent.window is not yet open : waiting", Logging.Yellow);
+            if (!Cache.Instance.OpenAgentWindow(module)) return;
 
-                    if (DateTime.Now.Subtract(_waitingOnAgentWindowTimer).TotalSeconds > 15)
-                    {
-                        Logging.Log("AgentInteraction.Agentid", " [" + AgentId + "] Cache.Instance.AgentId [ " + Cache.Instance.AgentId + "] should be the same if not doing a storyline mission", Logging.Yellow);
-                    }
-                    if (DateTime.Now.Subtract(_waitingOnAgentWindowTimer).TotalSeconds > 90)
-                    {
-                        Cache.Instance.CloseQuestorCMDLogoff = false;
-                        Cache.Instance.CloseQuestorCMDExitGame = true;
-                        Cache.Instance.ReasonToStopQuestor = "AgentInteraction: WaitforMission: AgentWindow would not open/refresh- agentwindow was null: restarting EVE Session";
-                        Logging.Log("ReasonToStopQuestor", Cache.Instance.ReasonToStopQuestor, Logging.Yellow);
-                        Cache.Instance.SessionState = "Quitting";
-                    }
-                }
-                return;
-            }
-            
-            _waitingOnAgentWindow = false;
-
-            //open the journal window
-            if (!Cache.Instance.OpenJournalWindow("AgentInteraction")) return;
+            if (!Cache.Instance.OpenJournalWindow(module)) return;
 
             Cache.Instance.Mission = Cache.Instance.GetAgentMission(AgentId, true);
             if (Cache.Instance.Mission == null)
@@ -500,11 +486,13 @@ namespace Questor.Modules.Actions
             MissionName = Cache.Instance.FilterPath(Cache.Instance.Mission.Name);
 
             Logging.Log("AgentInteraction", "[" + Agent.Name + "] standing toward me is [" + Cache.Instance.AgentEffectiveStandingtoMeText + "], minAgentGreyListStandings: [" + Settings.Instance.MinAgentGreyListStandings + "]", Logging.Yellow);
-            string html = agentWindow.Objective;
+            string html = Agent.Window.Objective;
             if (Settings.Instance.DebugAllMissionsOnBlackList || CheckFaction() || Settings.Instance.MissionBlacklist.Any(m => m.ToLower() == MissionName.ToLower()))
             {
                 if (Purpose != AgentInteractionPurpose.AmmoCheck)
+                {
                     Logging.Log("AgentInteraction", "Declining blacklisted mission [" + Cache.Instance.Mission.Name + "]", Logging.Yellow);
+                }
 
                 Cache.Instance.LastBlacklistMissionDeclined = MissionName;
                 Cache.Instance.BlackListedMissionsDeclined++;
@@ -557,7 +545,9 @@ namespace Questor.Modules.Actions
                 if ((MissionName != "Enemies Abound (2 of 5)") || (MissionName == "Enemies Abound (2 of 5)" && !Settings.Instance.LowSecMissionsInShuttles))
                 {
                     if (Purpose != AgentInteractionPurpose.AmmoCheck)
+                    {
                         Logging.Log("AgentInteraction", "Declining low-sec mission", Logging.Yellow);
+                    }
 
                     _States.CurrentAgentInteractionState = AgentInteractionState.DeclineMission;
                     _nextAgentAction = DateTime.Now.AddSeconds(Cache.Instance.RandomNumber(3, 7));
@@ -648,10 +638,9 @@ namespace Questor.Modules.Actions
             }
         }
 
-        private void AcceptMission()
+        private void AcceptMission(string module)
         {
-            if (Agent.Window == null || !Agent.Window.IsReady)
-                return;
+            if (!Cache.Instance.OpenAgentWindow(module)) return;
 
             List<DirectAgentResponse> responses = Agent.Window.AgentResponses;
             if (responses == null || responses.Count == 0)
@@ -661,48 +650,38 @@ namespace Questor.Modules.Actions
             if (accept == null)
                 return;
 
+            if (Cache.Instance.Agent.LoyaltyPoints == -1)
+            {
+                if (LoyaltyPointCounter < 10)
+                {
+                    Logging.Log("AgentInteraction", "Loyalty Points still -1; retrying", Logging.Red);
+                    _nextAgentAction = DateTime.Now.AddMilliseconds(500);
+                    LoyaltyPointCounter++;
+                    return;
+                }
+            }
+
+            LoyaltyPointCounter = 0;
+            Statistics.Instance.LoyaltyPoints = Cache.Instance.Agent.LoyaltyPoints;
+
             Logging.Log("AgentInteraction", "Saying [Accept]", Logging.Yellow);
             Cache.Instance.Wealth = Cache.Instance.DirectEve.Me.Wealth;
             accept.Say();
 
-            foreach (DirectWindow window in Cache.Instance.Windows)
-            {
-                if (window.Name == "modal")
-                {
-                    bool sayyes = false;
-                    if (!string.IsNullOrEmpty(window.Html))
-                    {
-                        //
-                        // Modal Dialogs the need "yes" pressed
-                        //
-                        sayyes |= window.Html.Contains("objectives requiring a total capacity");
-                        sayyes |= window.Html.Contains("your ship only has space for");
-                    }
-                    if (sayyes)
-                    {
-                        Logging.Log("AgentInteraction", "Found a window that needs 'yes' chosen...", Logging.Yellow);
-                        Logging.Log("AgentInteraction", "Content of modal window (HTML): [" + (window.Html).Replace("\n", "").Replace("\r", "") + "]", Logging.Yellow);
-                        window.AnswerModal("Yes");
-                        continue;
-                    }
-                }
-            }
             Logging.Log("AgentInteraction", "Closing conversation", Logging.Yellow);
             _States.CurrentAgentInteractionState = AgentInteractionState.CloseConversation;
             _nextAgentAction = DateTime.Now.AddSeconds(Cache.Instance.RandomNumber(3, 5));
         }
 
-        private void DeclineMission()
+        private void DeclineMission(string module)
         {
             // If we are doing an ammo check then Decline Mission is an end-state!
             if (Purpose == AgentInteractionPurpose.AmmoCheck)
                 return;
 
-            DirectAgentWindow agentWindow = Agent.Window;
-            if (agentWindow == null || !agentWindow.IsReady)
-                return;
+            if (!Cache.Instance.OpenAgentWindow(module)) return;
 
-            List<DirectAgentResponse> responses = agentWindow.AgentResponses;
+            List<DirectAgentResponse> responses = Agent.Window.AgentResponses;
             if (responses == null || responses.Count == 0)
                 return;
 
@@ -711,9 +690,9 @@ namespace Questor.Modules.Actions
                 return;
 
             // Check for agent decline timer
-            if (WaitDecline)
+            if (Settings.Instance.WaitDecline)
             {
-                string html = agentWindow.Briefing;
+                string html = Agent.Window.Briefing;
                 if (html.Contains("Declining a mission from this agent within the next"))
                 {
                     //this need to divide by 10 was a remnant of the html scrape method we were using before. this can likely be removed now.
@@ -816,7 +795,7 @@ namespace Questor.Modules.Actions
             decline.Say();
 
             Logging.Log("AgentInteraction", "Replying to agent", Logging.Yellow);
-            _States.CurrentAgentInteractionState = AgentInteractionState.ReplyToAgent;
+            _States.CurrentAgentInteractionState = AgentInteractionState.StartConversation;
             _nextAgentAction = DateTime.Now.AddSeconds(Cache.Instance.RandomNumber(3, 7));
             Statistics.Instance.MissionCompletionErrors = 0;
         }
@@ -931,12 +910,24 @@ namespace Questor.Modules.Actions
                 if (window.Name == "modal")
                 {
                     bool needHumanIntervention = false;
+                    bool sayyes = false;
 
                     if (!string.IsNullOrEmpty(window.Html))
                     {
                         //errors that are repeatable and unavoidable even after a restart of eve/questor
                         needHumanIntervention |= window.Html.Contains("One or more mission objectives have not been completed");
                         needHumanIntervention |= window.Html.Contains("Please check your mission journal for further information");
+
+                        sayyes |= window.Html.Contains("objectives requiring a total capacity");
+                        sayyes |= window.Html.Contains("your ship only has space for");
+                    }
+
+                    if (sayyes)
+                    {
+                        Logging.Log("AgentInteraction", "Found a window that needs 'yes' chosen...", Logging.Yellow);
+                        Logging.Log("AgentInteraction", "Content of modal window (HTML): [" + (window.Html).Replace("\n", "").Replace("\r", "") + "]", Logging.Yellow);
+                        window.AnswerModal("Yes");
+                        continue;
                     }
 
                     if (needHumanIntervention)
@@ -944,14 +935,14 @@ namespace Questor.Modules.Actions
                         Statistics.Instance.MissionCompletionErrors++;
                         Statistics.Instance.LastMissionCompletionError = DateTime.Now;
 
-                        Logging.Log("Cleanup", "This window indicates an error completing a mission: [" + Statistics.Instance.MissionCompletionErrors + "] errors already we will stop questor and halt restarting when we reach 3", Logging.White);
+                        Logging.Log("AgentInteraction", "This window indicates an error completing a mission: [" + Statistics.Instance.MissionCompletionErrors + "] errors already we will stop questor and halt restarting when we reach 3", Logging.White);
                         window.Close();
 
                         if (Statistics.Instance.MissionCompletionErrors > 3 && Cache.Instance.InStation)
                         {
                             if (Cache.Instance.MissionXMLIsAvailable)
                             {
-                                Logging.Log("Cleanup", "ERROR: Mission XML is available for [" + Cache.Instance.MissionName + "] but we still did not complete the mission after 3 tries! - ERROR!", Logging.White);
+                                Logging.Log("AgentInteraction", "ERROR: Mission XML is available for [" + Cache.Instance.MissionName + "] but we still did not complete the mission after 3 tries! - ERROR!", Logging.White);
                                 Settings.Instance.AutoStart = false;
                                 //we purposely disable autostart so that when we quit eve and questor here it stays closed until manually restarted as this error is fatal (and repeating)
                                 //Cache.Instance.CloseQuestorCMDLogoff = false;
@@ -962,7 +953,7 @@ namespace Questor.Modules.Actions
                             }
                             else
                             {
-                                Logging.Log("Cleanup", "ERROR: Mission XML is missing for [" + Cache.Instance.MissionName + "] and we we unable to complete the mission after 3 tries! - ERROR!", Logging.White);
+                                Logging.Log("AgentInteraction", "ERROR: Mission XML is missing for [" + Cache.Instance.MissionName + "] and we we unable to complete the mission after 3 tries! - ERROR!", Logging.White);
                                 Settings.Instance.AutoStart = false; //we purposely disable autostart so that when we quit eve and questor here it stays closed until manually restarted as this error is fatal (and repeating)
                                 //Cache.Instance.CloseQuestorCMDLogoff = false;
                                 //Cache.Instance.CloseQuestorCMDExitGame = true;
@@ -984,6 +975,7 @@ namespace Questor.Modules.Actions
             {
                 case AgentInteractionState.Idle:
                     break;
+
                 case AgentInteractionState.Done:
                     break;
 
@@ -992,79 +984,23 @@ namespace Questor.Modules.Actions
                     break;
 
                 case AgentInteractionState.StartConversation:
-                    Cache.Instance.AgentEffectiveStandingtoMe = Cache.Instance.DirectEve.Standings.EffectiveStanding(AgentId, Cache.Instance.DirectEve.Session.CharacterId ?? -1);
-                    Cache.Instance.AgentEffectiveStandingtoMeText = Cache.Instance.AgentEffectiveStandingtoMe.ToString("0.00");
-                    //
-                    // Standings Check: if this is a totally new agent this check will timeout after 20 seconds
-                    //
-                    if (DateTime.Now < _agentStandingsCheckTimeOut)
-                    {
-                        if (((int)Cache.Instance.AgentEffectiveStandingtoMe == (int)0.00) && (AgentId == Cache.Instance.AgentId))
-                        {
-                            if (!_agentStandingsCheckFlag)
-                            {
-                                _agentStandingsCheckTimeOut = DateTime.Now.AddSeconds(20);
-                                _agentStandingsCheckFlag = true;
-                            }
-                            Logging.Log("AgentInteraction.StandingsCheck", " Agent [" + Cache.Instance.DirectEve.GetAgentById(AgentId).Name + "] Standings show as [" + Cache.Instance.AgentEffectiveStandingtoMe + " and must not yet be available. retrying for [" + Math.Round((double)_agentStandingsCheckTimeOut.Subtract(DateTime.Now).Seconds, 0) + " sec]", Logging.Yellow);
-                            return;
-                        }
-                    }
-                    if (Agent.Window == null || !Agent.Window.IsReady)
-                    {
-                        if (_waitingOnAgentWindow == false)
-                        {
-                            Logging.Log("AgentInteraction", "Attempting to Interact with the agent named [" + Agent.Name + "] in [" + Cache.Instance.DirectEve.GetLocationName(Agent.SolarSystemId) + "]", Logging.Yellow);
-                            Agent.InteractWith();
-                            _waitingOnAgentWindowTimer = DateTime.Now;
-                            _waitingOnAgentWindow = true;
-                            return;
-                        }
-                        
-                        if (DateTime.Now > _waitingOnAgentWindowTimer.AddSeconds(10))
-                        {
-                            AgentInteractionAttempts++;
-                            _waitingOnAgentWindow = false;
-                            return;
-                        }
-
-                        if (AgentInteractionAttempts >= 10)
-                        {
-                            Cache.Instance.CloseQuestorCMDLogoff = false;
-                            Cache.Instance.CloseQuestorCMDExitGame = true;
-                            Cache.Instance.ReasonToStopQuestor = "AgentInteraction: ReplyToAgent: Agent Window would not open/refresh- agentwindow was null: restarting EVE Session";
-                            Logging.Log("ReasonToStopQuestor", Cache.Instance.ReasonToStopQuestor, Logging.Yellow);
-                            Cache.Instance.SessionState = "Quitting";
-                        }
-                        return;
-                    }
-                    
-                    if (Agent.Window.IsReady)
-                    {
-                        Logging.Log("AgentInteraction", "Waiting for conversation", Logging.Yellow);
-                        _States.CurrentAgentInteractionState = AgentInteractionState.WaitForConversation;
-                        break;
-                    }
-                    break;
-
-                case AgentInteractionState.WaitForConversation:
-                    WaitForConversation();
+                    StartConversation("AgentInteraction.StartConversation");
                     break;
 
                 case AgentInteractionState.ReplyToAgent:
-                    ReplyToAgent();
+                    ReplyToAgent("AgentInteraction.ReplyToAgent");
                     break;
 
                 case AgentInteractionState.WaitForMission:
-                    WaitForMission();
+                    WaitForMission("AgentInteraction.WaitForMission");
                     break;
 
                 case AgentInteractionState.AcceptMission:
-                    AcceptMission();
+                    AcceptMission("AgentInteraction.AcceptMission");
                     break;
 
                 case AgentInteractionState.DeclineMission:
-                    DeclineMission();
+                    DeclineMission("AgentInteraction.DeclineMission");
                     break;
 
                 case AgentInteractionState.CloseConversation:
